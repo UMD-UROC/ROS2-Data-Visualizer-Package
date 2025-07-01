@@ -1,3 +1,10 @@
+"""Foxglove 3D Path Visualization Node for UROC drone operations.
+
+This module provides a ROS2 node that subscribes to MAVROS pose data and
+publishes visualization data for Foxglove including drone pose, path, and
+transforms.
+"""
+
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import TransformStamped, PoseStamped
@@ -6,14 +13,15 @@ from nav_msgs.msg import Path
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 
 
-def ned_to_flu_xyz(xyz_enu):
-    # ENU→FLU conversion if needed; here identity
-    return list(xyz_enu)
-
-
-class VisualizerNode(Node):
+class PathVisualizerNode(Node):
+    """ROS2 node for visualizing drone path in Foxglove.
+    
+    Subscribes to MAVROS pose data and publishes drone pose, flight path,
+    and TF transforms for visualization in Foxglove.
+    """
+    
     def __init__(self):
-        super().__init__('visualizer_node')
+        super().__init__('path_visualizer_node')
         # TF broadcaster
         self.tf_broadcaster = TransformBroadcaster(self)
 
@@ -97,15 +105,21 @@ class VisualizerNode(Node):
 
 
 def main(args=None):
-    print("UROC Foxglove 3D Visualization Node Initiated. Press CTRL-C to exit.")
+    """Main entry point for the path visualization node."""
     rclpy.init(args=args)
-    node = VisualizerNode()
-
+    node = PathVisualizerNode()
+    
+    node.get_logger().info('UROC Foxglove 3D Path Visualization Node started')
+    
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
-        print("Shutting Down UROC Foxglove 3D Visualization Node")
+        node.get_logger().info('Keyboard interrupt received, shutting down')
     finally:
         node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()

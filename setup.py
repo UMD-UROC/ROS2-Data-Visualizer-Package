@@ -1,4 +1,6 @@
 from setuptools import find_packages, setup
+import os
+from glob import glob
 
 package_name = 'py_uroc'
 
@@ -10,18 +12,21 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        ('share/' + package_name + '/launch', ['launch/visualize.py']),
+        (os.path.join('share', package_name, 'launch'), glob('launch/*.py')),
     ],
-    install_requires=['setuptools'],
+    install_requires=[],
     zip_safe=True,
     maintainer='cdenihan',
     maintainer_email='cdenihan@proton.me',
     description='UMD UROC ROS2 Python Package',
     license='Apache-2.0',
-    tests_require=['pytest'],
+    extras_require={
+        'test': ['pytest'],
+    },
     entry_points={
         'console_scripts': [
-            'foxglove_3d_path_visualization = py_uroc.foxglove_3d_path_visualization:main'
+            'foxglove_3d_gimbal_visualization = py_uroc.foxglove_3d_gimbal_visualization:main',
+            'foxglove_3d_path_visualization = py_uroc.foxglove_3d_path_visualization:main',
         ],
     },
 )
