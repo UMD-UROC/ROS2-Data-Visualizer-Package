@@ -15,21 +15,21 @@ from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 
 class PathVisualizerNode(Node):
     """ROS2 node for visualizing drone path in Foxglove.
-    
+
     Subscribes to MAVROS pose data and publishes drone pose, flight path,
     and TF transforms for visualization in Foxglove.
     """
-    
+
     def __init__(self):
         super().__init__('path_visualizer_node')
         # TF broadcaster
         self.tf_broadcaster = TransformBroadcaster(self)
 
         # Publishers
-        self.drone_pose_pub = self.create_publisher(PoseStamped, '/drone/pose', 10)
+        self.drone_pose_pub = self.create_publisher(PoseStamped, '/drone/pose', 1)
         self.path = Path()
         self.path.header.frame_id = 'map'  # match your TF root
-        self.path_pub = self.create_publisher(Path, '/drone/flight_path', 10)
+        self.path_pub = self.create_publisher(Path, '/drone/flight_path', 1)
 
         # State
         self.drone_pos = [0.0, 0.0, 0.0]
@@ -51,7 +51,7 @@ class PathVisualizerNode(Node):
         )
 
         # Timer for publishing transforms, pose, and path
-        self.timer = self.create_timer(0.01, self.publish_loop)
+        self.timer = self.create_timer(1.0 / 1.0, self.publish_loop)
 
     def mavros_pose_callback(self, msg: PoseStamped):
         # Receive ENU pose
@@ -108,9 +108,9 @@ def main(args=None):
     """Main entry point for the path visualization node."""
     rclpy.init(args=args)
     node = PathVisualizerNode()
-    
+
     node.get_logger().info('UROC Foxglove 3D Path Visualization Node started')
-    
+
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:

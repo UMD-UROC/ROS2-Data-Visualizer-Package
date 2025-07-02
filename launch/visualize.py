@@ -1,11 +1,11 @@
-"""Launch file for UROC visualization nodes."""
+"""Unified launch file for UROC visualization and gimbal command bridge."""
 
 from launch import LaunchDescription
 from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    """Generate launch description for visualization nodes."""
+    """Generate unified launch description for all UROC nodes."""
     return LaunchDescription([
         Node(
             package='py_uroc',
@@ -24,5 +24,17 @@ def generate_launch_description():
             parameters=[{
                 'use_sim_time': False
             }]
+        ),
+        Node(
+            package='py_uroc',
+            executable='mavlink_gimbal_bridge',
+            name='mavlink_gimbal_bridge',
+            output='screen',
+            parameters=[{
+                'mavlink_connection': 'udp:localhost:14445',
+                'system_id': 1,
+                'component_id': 1
+            }]
         )
     ])
+

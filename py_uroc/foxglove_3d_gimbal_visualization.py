@@ -4,10 +4,10 @@ import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import TransformStamped, Point
 from tf2_ros import TransformBroadcaster
-from mavros_msgs.msg import GimbalManagerSetAttitude
+from mavros_msgs.msg import GimbalDeviceSetAttitude
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 from visualization_msgs.msg import Marker
-from mavros_msgs.msg import GimbalDeviceAttitudeStatus
+# from mavros_msgs.msg import GimbalDeviceAttitudeStatus
 
 
 
@@ -24,22 +24,21 @@ class GimbalVisualizerNode(Node):
         )
 
         self.create_subscription(
-            GimbalDeviceAttitudeStatus ,
-            '/mavros/gimbal_control/device/attitude_status' ,
-            self.mavros_pose_callback ,
+            GimbalDeviceSetAttitude,
+            '/mavros/gimbal_control/device/set_attitude',
+            self.mavros_pose_callback,
             qos
         )
 
-        self.marker_pub = self.create_publisher(Marker, '/drone/gimbal/marker', 10)
-        self.timer = self.create_timer(0.01, self.publish_loop)
+        self.marker_pub = self.create_publisher(Marker, '/drone/gimbal/marker', 1)
+        self.timer = self.create_timer(1.0 / 1.0, self.publish_loop)
 
-    def mavros_pose_callback(self, msg: GimbalDeviceAttitudeStatus):
-        self.drone_q = [msg.q.x, -msg.q.y, -msg.q.z, msg.q.w]
-        self.latest_header = msg.header
+    def mavros_pose_callback(self, msg: GimbalDeviceSetAttitude):
+        self.drone_q = [msg.q.x, msg.q.y, msg.q.z, msg.q.w]
 
     def publish_loop(self):
-        # Use latest timestamp or fallback to now
-        stamp = self.latest_header.stamp if hasattr(self, 'latest_header') else self.get_clock().now().to_msg()
+        # Use current timestamp
+        stamp = self.get_clock().now().to_msg()
 
         # Broadcast TF from drone_frame -> gimbal_frame with current orientation
         tf_msg = TransformStamped()
