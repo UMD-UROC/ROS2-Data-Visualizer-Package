@@ -25,8 +25,10 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'foxglove_3d_gimbal_visualization = py_uroc.foxglove_3d_gimbal_visualization:main',
+            'foxglove_3d_gimbal_visualization_attitude_status = py_uroc.foxglove_3d_gimbal_visualization_attitude_status:main',
+            'foxglove_3d_gimbal_visualization_set_attitude = py_uroc.foxglove_3d_gimbal_visualization_set_attitude:main',
             'foxglove_3d_path_visualization = py_uroc.foxglove_3d_path_visualization:main',
+            'foxglove_3d_vector_visualization = py_uroc.foxglove_3d_vector_visualization:main',
             'mavlink_gimbal_bridge = py_uroc.mavlink_gimbal_bridge:main',
         ],
     },

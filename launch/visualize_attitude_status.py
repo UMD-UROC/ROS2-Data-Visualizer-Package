@@ -18,8 +18,17 @@ def generate_launch_description():
         ),
         Node(
             package='py_uroc',
-            executable='foxglove_3d_gimbal_visualization',
+            executable='foxglove_3d_gimbal_visualization_attitude_status',
             name='gimbal_visualizer_node',
+            output='screen',
+            parameters=[{
+                'use_sim_time': False
+            }]
+        ),
+        Node(
+            package='py_uroc',
+            executable='foxglove_3d_vector_visualization',
+            name='vector_visualizer_node',
             output='screen',
             parameters=[{
                 'use_sim_time': False
@@ -37,4 +46,3 @@ def generate_launch_description():
             }]
         )
     ])
-
