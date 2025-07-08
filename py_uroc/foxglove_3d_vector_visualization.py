@@ -1,86 +1,68 @@
-"""Minimal Foxglove 3D Gimbal Visualization Node for UROC drone operations."""
-
 import rclpy
+from rclpy.node import Node
 from geometry_msgs.msg import Point, PoseStamped
 from mavros_msgs.msg import PositionTarget
-from rclpy.node import Node
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
-from tf2_ros import TransformBroadcaster
 from visualization_msgs.msg import Marker
 import message_filters
-
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 
 class VectorVisualizerNode(Node):
+    """ROS2 node that draws a green arrow from drone to target in map frame."""
+
     def __init__(self):
         super().__init__("vector_visualizer_node")
-        self.tf_broadcaster = TransformBroadcaster(self)
-        
+
         qos = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT,
             history=QoSHistoryPolicy.KEEP_LAST,
             depth=10,
         )
 
-        # Use message synchronization to ensure drone pose and target are synchronized
+        # Sync PositionTarget (map) and drone PoseStamped (map)
         self.target_sub = message_filters.Subscriber(
             self, PositionTarget, "/mavros/setpoint_raw/local", qos_profile=qos
         )
         self.drone_pose_sub = message_filters.Subscriber(
             self, PoseStamped, "/drone/pose", qos_profile=qos
         )
-        
-        # Synchronize messages with a small time tolerance
         self.ts = message_filters.ApproximateTimeSynchronizer(
-            [self.target_sub, self.drone_pose_sub], 
-            queue_size=10, 
-            slop=0.1  # 100ms tolerance
+            [self.target_sub, self.drone_pose_sub],
+            queue_size=10,
+            slop=0.1,
         )
         self.ts.registerCallback(self.synchronized_callback)
 
         self.marker_pub = self.create_publisher(Marker, "/drone/vector/marker", 1)
 
     def synchronized_callback(self, target_msg: PositionTarget, drone_pose_msg: PoseStamped):
-        """Callback that receives synchronized target and drone pose messages."""
-        # Use the timestamp from the messages for better synchronization
         stamp = drone_pose_msg.header.stamp
-        
-        # Extract drone position
+
+        # Extract global ENU positions
         drone_pos = [
             drone_pose_msg.pose.position.x,
             drone_pose_msg.pose.position.y,
-            drone_pose_msg.pose.position.z
+            drone_pose_msg.pose.position.z,
         ]
-        
-        # Extract target position
         target_pos = target_msg.position
 
-        # Create synchronized vector marker
+        # Build arrow marker in "map"
         marker = Marker()
         marker.header.stamp = stamp
-        marker.header.frame_id = "base_link"  # Use base_link frame for consistency
+        marker.header.frame_id = "map"
         marker.ns = "vector_arrow"
         marker.id = 0
         marker.type = Marker.ARROW
         marker.action = Marker.ADD
 
-        # Start point is the drone's position at the time of the synchronized messages
-        start_point = Point(
-            x=drone_pos[0],
-            y=drone_pos[1],
-            z=drone_pos[2],
-        )
-        # End point is the target position from the synchronized message
-        end_point = Point(
-            x=target_pos.x,
-            y=target_pos.y,
-            z=target_pos.z,
-        )
+        # Absolute start/end in ENU
+        start_point = Point(x=drone_pos[0], y=drone_pos[1], z=drone_pos[2])
+        end_point   = Point(x=target_pos.x, y=target_pos.y, z=target_pos.z)
         marker.points = [start_point, end_point]
 
-        marker.scale.x = 0.1  # shaft diameter
-        marker.scale.y = 0.2  # head diameter
-        marker.scale.z = 0.2  # head length
-
+        # Arrow style
+        marker.scale.x = 0.1
+        marker.scale.y = 0.2
+        marker.scale.z = 0.2
         marker.color.r = 0.0
         marker.color.g = 1.0
         marker.color.b = 0.0
@@ -93,7 +75,6 @@ def main(args=None):
     rclpy.init(args=args)
     node = VectorVisualizerNode()
     node.get_logger().info("UROC Vector Visualizer Node started")
-
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:

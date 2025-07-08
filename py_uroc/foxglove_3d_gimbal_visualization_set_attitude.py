@@ -1,111 +1,124 @@
-"""Minimal Foxglove 3D Gimbal Visualization Node for UROC drone operations."""
+#!/usr/bin/env python3
+"""Visualize commanded gimbal attitude as a red yaw-invariant arrow under base_link."""
 
 import rclpy
-from geometry_msgs.msg import TransformStamped, Point, PoseStamped
-from mavros_msgs.msg import GimbalDeviceSetAttitude
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
+from geometry_msgs.msg import TransformStamped, Point, PoseStamped
+from mavros_msgs.msg import GimbalDeviceSetAttitude
 from tf2_ros import TransformBroadcaster
 from visualization_msgs.msg import Marker
 
+# QoS to match MAVROS local_position publisher
+BEST_EFFORT_QOS = QoSProfile(
+    reliability=QoSReliabilityPolicy.BEST_EFFORT,
+    history=QoSHistoryPolicy.KEEP_LAST,
+    depth=10,
+)
 
-class GimbalVisualizerNode(Node):
+def quat_inverse(q):
+    x, y, z, w = q
+    return [-x, -y, -z, w]
+
+def quat_multiply(a, b):
+    ax, ay, az, aw = a
+    bx, by, bz, bw = b
+    return [
+        aw*bx + ax*bw + ay*bz - az*by,
+        aw*by - ax*bz + ay*bw + az*bx,
+        aw*bz + ax*by - ay*bx + az*bw,
+        aw*bw - ax*bx - ay*by - az*bz,
+    ]
+
+class GimbalSetAttitudeVisualizer(Node):
     def __init__(self):
-        super().__init__("gimbal_visualizer_node")
+        super().__init__("gimbal_visualizer_set_attitude")
         self.tf_broadcaster = TransformBroadcaster(self)
-        self.gimbal_q = [0.0, 0.0, 0.0, 1.0]
-        self.drone_pos = [0.0, 0.0, 0.0]
+        self.cmd_q = [0.0, 0.0, 0.0, 1.0]
         self.drone_q = [0.0, 0.0, 0.0, 1.0]
 
-        qos = QoSProfile(
-            reliability=QoSReliabilityPolicy.BEST_EFFORT,
-            history=QoSHistoryPolicy.KEEP_LAST,
-            depth=10,
-        )
-
+        # Subscribe with best-effort QoS
         self.create_subscription(
             GimbalDeviceSetAttitude,
             "/mavros/gimbal_control/device/set_attitude",
-            self.gimbal_attitude_callback,
-            qos,
+            self.on_gimbal_cmd,
+            BEST_EFFORT_QOS,
         )
-        
         self.create_subscription(
             PoseStamped,
             "/mavros/local_position/pose",
-            self.drone_pose_callback,
-            qos,
+            self.on_drone_pose,
+            BEST_EFFORT_QOS,
         )
 
-        self.marker_pub = self.create_publisher(Marker, "/drone/gimbal/marker", 1)
-        self.timer = self.create_timer(1.0 / 1.0, self.publish_loop)
+        self.marker_pub = self.create_publisher(Marker, "/drone/set_attitude/gimbal/marker", 1)
+        self.timer = self.create_timer(0.1, self.publish_loop)  # 10 Hz
 
-    def gimbal_attitude_callback(self, msg: GimbalDeviceSetAttitude):
-        self.gimbal_q = [msg.q.x, msg.q.y, msg.q.z, msg.q.w]
+    def on_gimbal_cmd(self, msg: GimbalDeviceSetAttitude):
+        # msg.q is already in ENU order [x,y,z,w]
+        self.cmd_q = [msg.q.x, msg.q.y, msg.q.z, msg.q.w]
 
-    def drone_pose_callback(self, msg: PoseStamped):
-        self.drone_pos = [msg.pose.position.x, msg.pose.position.y, msg.pose.position.z]
-        self.drone_q = [msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w]
+    def on_drone_pose(self, msg: PoseStamped):
+        self.drone_q = [
+            msg.pose.orientation.x,
+            msg.pose.orientation.y,
+            msg.pose.orientation.z,
+            msg.pose.orientation.w,
+        ]
 
     def publish_loop(self):
-        # Use current timestamp
         stamp = self.get_clock().now().to_msg()
 
-        # Broadcast TF from base_link → gimbal_frame with current orientation and position
+        # Relative orientation: q_rel = inv(drone_q) * cmd_q
+        q_rel = quat_multiply(quat_inverse(self.drone_q), self.cmd_q)
+
+        # 1) Broadcast TF: base_link -> gimbal_frame
         tf_msg = TransformStamped()
         tf_msg.header.stamp = stamp
         tf_msg.header.frame_id = "base_link"
         tf_msg.child_frame_id = "gimbal_frame"
-        tf_msg.transform.translation.x = self.drone_pos[0]
-        tf_msg.transform.translation.y = self.drone_pos[1]
-        tf_msg.transform.translation.z = self.drone_pos[2]
-        tf_msg.transform.rotation.x = self.gimbal_q[0]
-        tf_msg.transform.rotation.y = self.gimbal_q[1]
-        tf_msg.transform.rotation.z = self.gimbal_q[2]
-        tf_msg.transform.rotation.w = self.gimbal_q[3]
+        tf_msg.transform.translation.x = 0.0
+        tf_msg.transform.translation.y = 0.0
+        tf_msg.transform.translation.z = 0.0
+        tf_msg.transform.rotation.x = q_rel[0]
+        tf_msg.transform.rotation.y = q_rel[1]
+        tf_msg.transform.rotation.z = q_rel[2]
+        tf_msg.transform.rotation.w = q_rel[3]
         self.tf_broadcaster.sendTransform(tf_msg)
 
-        # Create a marker in gimbal_frame pointing forward in local +X
+        # 2) Draw red arrow along local -X
         marker = Marker()
         marker.header.stamp = stamp
         marker.header.frame_id = "gimbal_frame"
-        marker.ns = "gimbal_arrow"
+        marker.ns = "gimbal_set_attitude"
         marker.id = 0
         marker.type = Marker.ARROW
         marker.action = Marker.ADD
-
-        # Fixed arrow shape (relative to gimbal_frame)
-        start_point = Point(x=0.0, y=0.0, z=0.0)
-        end_point = Point(x=1.0, y=0.0, z=0.0)
-        marker.points = [start_point, end_point]
-
-        # Size of the arrow
-        marker.scale.x = 0.1  # shaft diameter
-        marker.scale.y = 0.2  # head diameter
-        marker.scale.z = 0.2  # head length
-
-        # Color (solid red)
+        marker.points = [
+            Point(x=0.0, y=0.0, z=0.0),
+            Point(x=-1.0, y=0.0, z=0.0),
+        ]
+        marker.scale.x = 0.1
+        marker.scale.y = 0.2
+        marker.scale.z = 0.2
         marker.color.r = 1.0
         marker.color.g = 0.0
         marker.color.b = 0.0
         marker.color.a = 1.0
-
         self.marker_pub.publish(marker)
 
 
 def main(args=None):
     rclpy.init(args=args)
-    node = GimbalVisualizerNode()
-    node.get_logger().info("UROC Foxglove Gimbal TF Node started")
-
+    node = GimbalSetAttitudeVisualizer()
+    node.get_logger().info("Started Gimbal Set-Attitude Visualizer")
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
-        node.get_logger().info("Shutting down")
+        pass
     finally:
         node.destroy_node()
-        if rclpy.ok():
-            rclpy.shutdown()
+        rclpy.shutdown()
 
 
 if __name__ == "__main__":

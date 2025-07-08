@@ -1,58 +1,50 @@
-"""Foxglove 3D Path Visualization Node for UROC drone operations.
-
-This module provides a ROS2 node that subscribes to MAVROS pose data and
-publishes visualization data for Foxglove including drone pose, path, and
-transforms.
-"""
-
 import rclpy
-from geometry_msgs.msg import TransformStamped, PoseStamped
+from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
-from tf2_ros import TransformBroadcaster
-
 
 class PathVisualizerNode(Node):
-    """ROS2 node for visualizing drone path in Foxglove.
-
-    Subscribes to MAVROS pose data and publishes drone pose, flight path,
-    and TF transforms for visualization in Foxglove.
-    """
+    """ROS2 node for visualizing drone path in Foxglove (global map frame)."""
 
     def __init__(self):
         super().__init__("path_visualizer_node")
-        # TF broadcaster
-        self.tf_broadcaster = TransformBroadcaster(self)
 
-        # Publishers - everything in base_link frame for consistency
+        # Publishers: PoseStamped and Path, both in "map"
         self.drone_pose_pub = self.create_publisher(PoseStamped, "/drone/pose", 1)
         self.path = Path()
-        self.path.header.frame_id = "base_link"  # Use base_link frame for consistency
+        self.path.header.frame_id = "map"
         self.path_pub = self.create_publisher(Path, "/drone/flight_path", 1)
 
         # State
         self.drone_pos = [0.0, 0.0, 0.0]
         self.drone_q = [0.0, 0.0, 0.0, 1.0]
 
-        # QoS matching MAVROS publisher (BEST_EFFORT)
+        # QoS matching MAVROS ENU publisher
         qos = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT,
             history=QoSHistoryPolicy.KEEP_LAST,
             depth=10,
         )
 
-        # Subscribe to MAVROS pose with matching QoS
+        # Subscribe to MAVROS local_position (ENU) in map
         self.create_subscription(
-            PoseStamped, "/mavros/local_position/pose", self.mavros_pose_callback, qos
+            PoseStamped,
+            "/mavros/local_position/pose",
+            self.mavros_pose_callback,
+            qos,
         )
 
-        # Timer for publishing transforms, pose, and path
-        self.timer = self.create_timer(1.0 / 1.0, self.publish_loop)
+        # Publish at 1 Hz
+        self.timer = self.create_timer(1.0, self.publish_loop)
 
     def mavros_pose_callback(self, msg: PoseStamped):
-        # Receive ENU pose
-        self.drone_pos = [msg.pose.position.x, msg.pose.position.y, msg.pose.position.z]
+        # Update latest pose and header
+        self.drone_pos = [
+            msg.pose.position.x,
+            msg.pose.position.y,
+            msg.pose.position.z,
+        ]
         self.drone_q = [
             msg.pose.orientation.x,
             msg.pose.orientation.y,
@@ -62,18 +54,16 @@ class PathVisualizerNode(Node):
         self.latest_header = msg.header
 
     def publish_loop(self):
-        # Use latest header timestamp, fallback to now
+        # Timestamp from latest MAVROS message, or now
         if hasattr(self, "latest_header"):
             stamp = self.latest_header.stamp
         else:
             stamp = self.get_clock().now().to_msg()
 
-        # Note: base_link frame already exists from MAVROS, no need to broadcast
-
-        # Current PoseStamped
+        # Publish PoseStamped in "map"
         pose_msg = PoseStamped()
         pose_msg.header.stamp = stamp
-        pose_msg.header.frame_id = self.path.header.frame_id
+        pose_msg.header.frame_id = "map"
         pose_msg.pose.position.x = self.drone_pos[0]
         pose_msg.pose.position.y = self.drone_pos[1]
         pose_msg.pose.position.z = self.drone_pos[2]
@@ -90,16 +80,13 @@ class PathVisualizerNode(Node):
 
 
 def main(args=None):
-    """Main entry point for the path visualization node."""
     rclpy.init(args=args)
     node = PathVisualizerNode()
-
     node.get_logger().info("UROC Foxglove 3D Path Visualization Node started")
-
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
-        node.get_logger().info("Keyboard interrupt received, shutting down")
+        node.get_logger().info("Shutting down")
     finally:
         node.destroy_node()
         if rclpy.ok():
