@@ -47,11 +47,9 @@ class VectorVisualizerNode(Node):
         ]
 
         # Use velocity from PositionTarget message to create velocity vector
-        drone_velocity = [
-            target_msg.velocity.x,
-            target_msg.velocity.y,
-            target_msg.velocity.z,
-        ]
+        drone_velocity = mavV_to_rosV([target_msg.velocity.x,
+                                       target_msg.velocity.y,
+                                       target_msg.velocity.z])
 
         # Create target position by adding velocity vector to current position
         # This creates a velocity vector visualization
@@ -103,3 +101,6 @@ def main(args=None):
 
 if __name__ == "__main__":
     main()
+
+def mavV_to_rosV(mavV):
+    return [mavV[1], mavV[0], -mavV[2]]
