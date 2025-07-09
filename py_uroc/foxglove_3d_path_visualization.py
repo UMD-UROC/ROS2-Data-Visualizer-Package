@@ -1,8 +1,10 @@
 import rclpy
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path
+from .qos_profile import BEST_EFFORT_QOS
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
+
 
 class PathVisualizerNode(Node):
     """ROS2 node for visualizing drone path in Foxglove (global map frame)."""
@@ -20,19 +22,12 @@ class PathVisualizerNode(Node):
         self.drone_pos = [0.0, 0.0, 0.0]
         self.drone_q = [0.0, 0.0, 0.0, 1.0]
 
-        # QoS matching MAVROS ENU publisher
-        qos = QoSProfile(
-            reliability=QoSReliabilityPolicy.BEST_EFFORT,
-            history=QoSHistoryPolicy.KEEP_LAST,
-            depth=10,
-        )
-
         # Subscribe to MAVROS local_position (ENU) in map
         self.create_subscription(
             PoseStamped,
             "/mavros/local_position/pose",
             self.mavros_pose_callback,
-            qos,
+            BEST_EFFORT_QOS,
         )
 
         # Publish at 1 Hz

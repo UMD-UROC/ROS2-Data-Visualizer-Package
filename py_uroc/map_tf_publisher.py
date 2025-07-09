@@ -6,28 +6,22 @@ pose topic and does not create any new coordinate conversions.
 """
 
 import rclpy
-from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped, TransformStamped
-from tf2_ros import TransformBroadcaster
+from .qos_profile import BEST_EFFORT_QOS
+from rclpy.node import Node
 from rclpy.qos import QoSReliabilityPolicy, QoSHistoryPolicy, QoSProfile
+from tf2_ros import TransformBroadcaster
 
 
 class MapTFPublisher(Node):
     def __init__(self) -> None:
         super().__init__("map_tf_publisher")
 
-        # Best‑effort QoS (matches MAVROS publishers)
-        qos = QoSProfile(
-            reliability=QoSReliabilityPolicy.BEST_EFFORT,
-            history=QoSHistoryPolicy.KEEP_LAST,
-            depth=10,
-        )
-
         self.pose_sub = self.create_subscription(
             PoseStamped,
             "/mavros/local_position/pose",
             self.pose_callback,
-            qos,
+            BEST_EFFORT_QOS,
         )
 
         self.br = TransformBroadcaster(self)
@@ -43,18 +37,19 @@ class MapTFPublisher(Node):
             child  = "base_link"
         """
         tf_msg = TransformStamped()
-        tf_msg.header = msg.header           # stamp + "map"
+        tf_msg.header = msg.header  # stamp + "map"
         tf_msg.child_frame_id = "base_link"
 
         tf_msg.transform.translation.x = msg.pose.position.x
         tf_msg.transform.translation.y = msg.pose.position.y
         tf_msg.transform.translation.z = msg.pose.position.z
-        tf_msg.transform.rotation     = msg.pose.orientation
+        tf_msg.transform.rotation = msg.pose.orientation
 
         self.br.sendTransform(tf_msg)
 
 
 # ---------- main -----------------------------------------------------------
+
 
 def main(args=None) -> None:
     rclpy.init(args=args)

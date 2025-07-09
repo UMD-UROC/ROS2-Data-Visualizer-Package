@@ -3,11 +3,12 @@
 import threading
 
 import rclpy
-from geometry_msgs.msg import Quaternion, PoseStamped
-from mavros_msgs.msg import GimbalDeviceSetAttitude, PositionTarget
+from geometry_msgs.msg import Quaternion , PoseStamped
+from mavros_msgs.msg import GimbalDeviceSetAttitude , PositionTarget
 from pymavlink import mavutil
+from .qos_profile import BEST_EFFORT_QOS, RELIABLE_QOS
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
+from rclpy.qos import QoSProfile , QoSReliabilityPolicy , QoSHistoryPolicy
 from std_msgs.msg import Header
 
 
@@ -27,19 +28,14 @@ class MAVLinkGimbalBridge(Node):
         self.system_id = self.get_parameter("system_id").value
         self.component_id = self.get_parameter("component_id").value
 
-        # QoS matching MAVROS
-        qos = QoSProfile(
-            reliability=QoSReliabilityPolicy.RELIABLE,
-            history=QoSHistoryPolicy.KEEP_LAST,
-            depth=10,
-        )
-
         # ROS2 publishers
         self.gimbal_pub = self.create_publisher(
-            GimbalDeviceSetAttitude, "/mavros/gimbal_control/device/set_attitude", qos
+            GimbalDeviceSetAttitude,
+            "/mavros/gimbal_control/device/set_attitude",
+            RELIABLE_QOS,
         )
         self.vector_pub = self.create_publisher(
-            PositionTarget, "/mavros/setpoint_raw/local", qos
+            PositionTarget, "/mavros/setpoint_raw/local", BEST_EFFORT_QOS
         )
 
         # Initialize MAVLink connection

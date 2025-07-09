@@ -1,35 +1,31 @@
 #!/usr/bin/env python3
 """Visualize actual gimbal attitude status as a blue yaw-invariant arrow."""
 
-import sys
 import rclpy
-from rclpy.node import Node
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 from geometry_msgs.msg import TransformStamped, Point, PoseStamped
 from mavros_msgs.msg import GimbalDeviceAttitudeStatus
+from .qos_profile import BEST_EFFORT_QOS
+from rclpy.node import Node
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 from tf2_ros import TransformBroadcaster
 from visualization_msgs.msg import Marker
 
-# QoS to match MAVROS local_position publisher
-BEST_EFFORT_QOS = QoSProfile(
-    reliability=QoSReliabilityPolicy.BEST_EFFORT,
-    history=QoSHistoryPolicy.KEEP_LAST,
-    depth=10,
-)
 
 def quat_inverse(q):
     x, y, z, w = q
     return [-x, -y, -z, w]
 
+
 def quat_multiply(a, b):
     ax, ay, az, aw = a
     bx, by, bz, bw = b
     return [
-        aw*bx + ax*bw + ay*bz - az*by,
-        aw*by - ax*bz + ay*bw + az*bx,
-        aw*bz + ax*by - ay*bx + az*bw,
-        aw*bw - ax*bx - ay*by - az*bz,
+        aw * bx + ax * bw + ay * bz - az * by,
+        aw * by - ax * bz + ay * bw + az * bx,
+        aw * bz + ax * by - ay * bx + az * bw,
+        aw * bw - ax * bx - ay * by - az * bz,
     ]
+
 
 class GimbalStatusVisualizer(Node):
     def __init__(self):
@@ -53,7 +49,9 @@ class GimbalStatusVisualizer(Node):
             BEST_EFFORT_QOS,
         )
 
-        self.marker_pub = self.create_publisher(Marker, "/drone/attitude_status/gimbal/marker", 1)
+        self.marker_pub = self.create_publisher(
+            Marker, "/drone/attitude_status/gimbal/marker", 1
+        )
         self.timer = self.create_timer(0.1, self.publish_loop)  # 10 Hz
 
     def on_status(self, msg: GimbalDeviceAttitudeStatus):

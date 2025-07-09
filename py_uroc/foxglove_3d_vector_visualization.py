@@ -1,10 +1,12 @@
+import message_filters
 import rclpy
-from rclpy.node import Node
 from geometry_msgs.msg import Point, PoseStamped
 from mavros_msgs.msg import PositionTarget
-from visualization_msgs.msg import Marker
-import message_filters
+from .qos_profile import BEST_EFFORT_QOS
+from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
+from visualization_msgs.msg import Marker
+
 
 class VectorVisualizerNode(Node):
     """ROS2 node that draws a green arrow from drone to target in map frame."""
@@ -12,18 +14,15 @@ class VectorVisualizerNode(Node):
     def __init__(self):
         super().__init__("vector_visualizer_node")
 
-        qos = QoSProfile(
-            reliability=QoSReliabilityPolicy.BEST_EFFORT,
-            history=QoSHistoryPolicy.KEEP_LAST,
-            depth=10,
-        )
-
         # Sync PositionTarget (map) and drone PoseStamped (map)
         self.target_sub = message_filters.Subscriber(
-            self, PositionTarget, "/mavros/setpoint_raw/local", qos_profile=qos
+            self,
+            PositionTarget,
+            "/mavros/setpoint_raw/local",
+            qos_profile=BEST_EFFORT_QOS,
         )
         self.drone_pose_sub = message_filters.Subscriber(
-            self, PoseStamped, "/drone/pose", qos_profile=qos
+            self, PoseStamped, "/drone/pose", qos_profile=BEST_EFFORT_QOS
         )
         self.ts = message_filters.ApproximateTimeSynchronizer(
             [self.target_sub, self.drone_pose_sub],
@@ -34,7 +33,9 @@ class VectorVisualizerNode(Node):
 
         self.marker_pub = self.create_publisher(Marker, "/drone/vector/marker", 1)
 
-    def synchronized_callback(self, target_msg: PositionTarget, drone_pose_msg: PoseStamped):
+    def synchronized_callback(
+        self, target_msg: PositionTarget, drone_pose_msg: PoseStamped
+    ):
         stamp = drone_pose_msg.header.stamp
 
         # Extract global ENU positions
@@ -56,7 +57,7 @@ class VectorVisualizerNode(Node):
 
         # Absolute start/end in ENU
         start_point = Point(x=drone_pos[0], y=drone_pos[1], z=drone_pos[2])
-        end_point   = Point(x=target_pos.x, y=target_pos.y, z=target_pos.z)
+        end_point = Point(x=target_pos.x, y=target_pos.y, z=target_pos.z)
         marker.points = [start_point, end_point]
 
         # Arrow style
