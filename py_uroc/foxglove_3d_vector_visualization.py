@@ -1,11 +1,12 @@
 import message_filters
 import rclpy
-from geometry_msgs.msg import Point, PoseStamped
+from geometry_msgs.msg import Point , PoseStamped
 from mavros_msgs.msg import PositionTarget
-from .qos_profile import BEST_EFFORT_QOS
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
+from rclpy.qos import QoSProfile , QoSReliabilityPolicy , QoSHistoryPolicy
 from visualization_msgs.msg import Marker
+
+from .qos_profile import BEST_EFFORT_QOS
 
 
 class VectorVisualizerNode(Node):
@@ -44,7 +45,21 @@ class VectorVisualizerNode(Node):
             drone_pose_msg.pose.position.y,
             drone_pose_msg.pose.position.z,
         ]
-        target_pos = target_msg.position
+
+        # Use velocity from PositionTarget message to create velocity vector
+        drone_velocity = [
+            target_msg.velocity.x,
+            target_msg.velocity.y,
+            target_msg.velocity.z,
+        ]
+
+        # Create target position by adding velocity vector to current position
+        # This creates a velocity vector visualization
+        target_pos = [
+            drone_pos[0] + drone_velocity[0],
+            drone_pos[1] + drone_velocity[1],
+            drone_pos[2] + drone_velocity[2],
+        ]
 
         # Build arrow marker in "map"
         marker = Marker()
@@ -57,7 +72,7 @@ class VectorVisualizerNode(Node):
 
         # Absolute start/end in ENU
         start_point = Point(x=drone_pos[0], y=drone_pos[1], z=drone_pos[2])
-        end_point = Point(x=target_pos.x, y=target_pos.y, z=target_pos.z)
+        end_point = Point(x=target_pos[0], y=target_pos[1], z=target_pos[2])
         marker.points = [start_point, end_point]
 
         # Arrow style
