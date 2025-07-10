@@ -1,4 +1,5 @@
-# Python file to create gimbal_frame
+# py_uroc
+
 import os
 
 import rclpy
@@ -19,7 +20,6 @@ class GimbalFrame(Node):
         super().__init__("gimbal_frame")
         self.tf_broadcaster = TransformBroadcaster(self)
 
-        # Create timer to publish transform at 50Hz
         self.timer = self.create_timer(REFRESH_RATE_HZ, self.publish_loop)
 
     def publish_loop(self):

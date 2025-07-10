@@ -5,7 +5,7 @@ import os
 import rclpy
 from ament_index_python.packages import get_package_share_directory
 from dotenv import load_dotenv
-from geometry_msgs.msg import PoseStamped , Point
+from geometry_msgs.msg import PoseStamped, Point
 from mavros_msgs.msg import PositionTarget
 from rclpy.node import Node
 from visualization_msgs.msg import Marker
@@ -66,6 +66,7 @@ class VelocityVectorVisualizer(Node):
         else:
             stamp = self.get_clock().now().to_msg()
 
+            # Calculate target position for velocity vector visualization
             target_pos = [
                 self.drone_pos[0] + self.drone_velocity[0],
                 self.drone_pos[1] + self.drone_velocity[1],

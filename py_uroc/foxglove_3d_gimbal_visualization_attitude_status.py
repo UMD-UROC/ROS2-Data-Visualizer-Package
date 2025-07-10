@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+# py_uroc/foxglove_3d_gimbal_visualization_attitude_status
 """Visualize actual gimbal attitude status as a blue yaw-invariant arrow."""
 
 import os

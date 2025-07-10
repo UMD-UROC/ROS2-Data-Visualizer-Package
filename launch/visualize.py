@@ -26,7 +26,7 @@ def generate_launch_description():
             # Path visualization in global map frame
             Node(
                 package="py_uroc",
-                executable="foxglove_3d_path_visualization",
+                executable="3d_path_visualization",
                 name="path_visualizer_node",
                 output="screen",
                 parameters=[{"use_sim_time": False}],
@@ -50,7 +50,7 @@ def generate_launch_description():
             # Target vector visualization (green arrow)
             Node(
                 package="py_uroc",
-                executable="foxglove_3d_velocity_vector_visualization",
+                executable="velocity_vector_visualization",
                 name="velocity_vector_visualizer_node",
                 output="screen",
                 parameters=[{"use_sim_time": False}],
