@@ -1,12 +1,14 @@
 # py_uroc/map_tf_publisher.py
 """
-Bridges MAVROS /mavros/local_position/pose into /tf so that `base_link`
-has a parent `map` frame (global ENU).  Publishes at the rate of the MAVROS
-pose topic and does not create any new coordinate conversions.
+Bridges MAVROS /mavros/local_position/pose into /tf.
+
+Creates a transform from `map` to `base_link` frame (global ENU).
+Publishes at the rate of the MAVROS pose topic and does not create
+any new coordinate conversions.
 """
 
 import rclpy
-from geometry_msgs.msg import PoseStamped , TransformStamped
+from geometry_msgs.msg import PoseStamped, TransformStamped
 from rclpy.node import Node
 from tf2_ros import TransformBroadcaster
 
@@ -30,9 +32,9 @@ class MapTFPublisher(Node):
 
     def pose_callback(self, msg: PoseStamped) -> None:
         """
-        Convert the incoming PoseStamped into a TransformStamped and
-        forward it on /tf.  Frame semantics:
+        Convert the incoming PoseStamped into a TransformStamped.
 
+        Forward it on /tf with frame semantics:
             parent = "map"
             child  = "base_link"
         """

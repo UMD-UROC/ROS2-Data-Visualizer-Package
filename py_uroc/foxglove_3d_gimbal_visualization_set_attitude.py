@@ -6,7 +6,7 @@ import os
 import rclpy
 from ament_index_python.packages import get_package_share_directory
 from dotenv import load_dotenv
-from geometry_msgs.msg import TransformStamped , Point , PoseStamped
+from geometry_msgs.msg import Point, PoseStamped
 from mavros_msgs.msg import GimbalDeviceSetAttitude
 from rclpy.node import Node
 from tf2_ros import TransformBroadcaster
@@ -77,8 +77,8 @@ class GimbalSetAttitudeVisualizer(Node):
     def publish_loop(self):
         stamp = self.get_clock().now().to_msg()
 
-        # Relative orientation: q_rel = inv(drone_q) * cmd_q
-        q_rel = quat_multiply(quat_inverse(self.drone_q), self.cmd_q)
+        # Relative orientation: q_rel = inv(drone_q) * cmd_q (not used in visualization)
+        # q_rel = quat_multiply(quat_inverse(self.drone_q), self.cmd_q)
 
         # 2) Draw red arrow along local -X
         marker = Marker()

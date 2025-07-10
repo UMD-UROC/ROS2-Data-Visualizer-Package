@@ -87,7 +87,7 @@ class VelocityVectorVisualizer(Node):
                 x=self.drone_pos[0], y=self.drone_pos[1], z=self.drone_pos[2]
             )
             end_point = Point(
-                x=self.target_pos[0], y=self.target_pos[1], z=self.target_pos[2]
+                x=target_pos[0], y=target_pos[1], z=target_pos[2]
             )
             marker.points = [start_point, end_point]
 

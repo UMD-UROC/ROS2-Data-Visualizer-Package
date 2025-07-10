@@ -1,7 +1,7 @@
 import os
 from glob import glob
 
-from setuptools import find_packages , setup
+from setuptools import find_packages, setup
 
 package_name = "py_uroc"
 
@@ -26,8 +26,10 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "foxglove_3d_gimbal_visualization_attitude_status = py_uroc.foxglove_3d_gimbal_visualization_attitude_status:main",
-            "foxglove_3d_gimbal_visualization_set_attitude = py_uroc.foxglove_3d_gimbal_visualization_set_attitude:main",
+            "foxglove_3d_gimbal_visualization_attitude_status = "
+            "py_uroc.foxglove_3d_gimbal_visualization_attitude_status:main",
+            "foxglove_3d_gimbal_visualization_set_attitude = "
+            "py_uroc.foxglove_3d_gimbal_visualization_set_attitude:main",
             "3d_path_visualization = py_uroc.3d_path_visualization:main",
             "3d_velocity_vector_visualization = py_uroc.3d_velocity_vector_visualization:main",
             "gimbal_frame = py_uroc.gimbal_frame:main",

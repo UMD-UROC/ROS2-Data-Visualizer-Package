@@ -1,15 +1,15 @@
-"""PyMAVLink to ROS2 bridge for GIMBAL_DEVICE_SET_ATTITUDE and POSITION_TARGET_LOCAL_NED messages."""
+"""PyMAVLink to ROS2 bridge for gimbal and position messages."""
 
 import threading
 
 import rclpy
 from geometry_msgs.msg import Quaternion
-from mavros_msgs.msg import GimbalDeviceSetAttitude , PositionTarget
+from mavros_msgs.msg import GimbalDeviceSetAttitude, PositionTarget
 from pymavlink import mavutil
 from rclpy.node import Node
 from std_msgs.msg import Header
 
-from .qos_profile import BEST_EFFORT_QOS , RELIABLE_QOS
+from .qos_profile import BEST_EFFORT_QOS, RELIABLE_QOS
 
 
 class MAVLinkGimbalBridge(Node):
@@ -152,7 +152,8 @@ class MAVLinkGimbalBridge(Node):
             self.get_logger().debug(
                 f"Published POSITION_TARGET_LOCAL_NED: pos=[{ros_msg.position.x:.2f}, "
                 f"{ros_msg.position.y:.2f}, {ros_msg.position.z:.2f}], "
-                f"vel=[{ros_msg.velocity.x:.2f}, {ros_msg.velocity.y:.2f}, {ros_msg.velocity.z:.2f}]"
+                f"vel=[{ros_msg.velocity.x:.2f}, {ros_msg.velocity.y:.2f}, "
+                f"{ros_msg.velocity.z:.2f}]"
             )
 
         except Exception as e:
