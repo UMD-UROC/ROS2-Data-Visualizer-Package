@@ -2,13 +2,14 @@
 """Visualize commanded gimbal attitude as a red yaw-invariant arrow under base_link."""
 
 import rclpy
-from geometry_msgs.msg import TransformStamped, Point, PoseStamped
+from geometry_msgs.msg import TransformStamped , Point , PoseStamped
 from mavros_msgs.msg import GimbalDeviceSetAttitude
-from .qos_profile import BEST_EFFORT_QOS
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
+from rclpy.qos import QoSProfile , QoSReliabilityPolicy , QoSHistoryPolicy
 from tf2_ros import TransformBroadcaster
 from visualization_msgs.msg import Marker
+
+from .qos_profile import BEST_EFFORT_QOS
 
 
 def quat_inverse(q):
@@ -70,20 +71,6 @@ class GimbalSetAttitudeVisualizer(Node):
 
         # Relative orientation: q_rel = inv(drone_q) * cmd_q
         q_rel = quat_multiply(quat_inverse(self.drone_q), self.cmd_q)
-
-        # 1) Broadcast TF: base_link -> gimbal_frame
-        tf_msg = TransformStamped()
-        tf_msg.header.stamp = stamp
-        tf_msg.header.frame_id = "base_link"
-        tf_msg.child_frame_id = "gimbal_frame"
-        tf_msg.transform.translation.x = 0.0
-        tf_msg.transform.translation.y = 0.0
-        tf_msg.transform.translation.z = 0.0
-        tf_msg.transform.rotation.x = q_rel[0]
-        tf_msg.transform.rotation.y = q_rel[1]
-        tf_msg.transform.rotation.z = q_rel[2]
-        tf_msg.transform.rotation.w = q_rel[3]
-        self.tf_broadcaster.sendTransform(tf_msg)
 
         # 2) Draw red arrow along local -X
         marker = Marker()
