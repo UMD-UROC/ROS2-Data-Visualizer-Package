@@ -26,32 +26,32 @@ def generate_launch_description():
             # Path visualization in global map frame
             Node(
                 package="py_uroc",
-                executable="3d_path_visualization",
-                name="path_visualizer_node",
+                executable="path_visualizer",
+                name="path_visualizer",
                 output="screen",
                 parameters=[{"use_sim_time": False}],
             ),
             # Gimbal actual-status visualization (red arrow)
             Node(
                 package="py_uroc",
-                executable="foxglove_3d_gimbal_visualization_attitude_status",
-                name="gimbal_visualizer_node_attitude_status",
+                executable="foxglove_3d_gimbal_attitude_status_visualizer",
+                name="gimbal_attitude_status_visualizer",
                 output="screen",
                 parameters=[{"use_sim_time": False}],
             ),
             # Gimbal set-attitude visualization (red arrow)
             Node(
                 package="py_uroc",
-                executable="foxglove_3d_gimbal_visualization_set_attitude",
-                name="gimbal_visualizer_node_set_attitude",
+                executable="foxglove_3d_gimbal_set_attitude_visualizer",
+                name="gimbal_set_attitude_visualizer",
                 output="screen",
                 parameters=[{"use_sim_time": False}],
             ),
             # Target vector visualization (green arrow)
             Node(
                 package="py_uroc",
-                executable="velocity_vector_visualization",
-                name="velocity_vector_visualizer_node",
+                executable="velocity_vector_visualizer",
+                name="velocity_vector_visualizer",
                 output="screen",
                 parameters=[{"use_sim_time": False}],
             ),

@@ -26,12 +26,12 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "foxglove_3d_gimbal_visualization_attitude_status = "
-            "py_uroc.foxglove_3d_gimbal_visualization_attitude_status:main",
-            "foxglove_3d_gimbal_visualization_set_attitude = "
-            "py_uroc.foxglove_3d_gimbal_visualization_set_attitude:main",
-            "3d_path_visualization = py_uroc.3d_path_visualization:main",
-            "3d_velocity_vector_visualization = py_uroc.3d_velocity_vector_visualization:main",
+            "foxglove_3d_gimbal_attitude_status_visualizer = "
+            "py_uroc.foxglove_3d_gimbal_attitude_status_visualizer:main",
+            "foxglove_3d_gimbal_set_attitude_visualizer = "
+            "py_uroc.foxglove_3d_gimbal_set_attitude_visualizer:main",
+            "path_visualizer = py_uroc.path_visualizer:main",
+            "velocity_vector_visualizer = py_uroc.velocity_vector_visualizer:main",
             "gimbal_frame = py_uroc.gimbal_frame:main",
             "map_tf_publisher = py_uroc.map_tf_publisher:main",
             "mavlink_bridge = py_uroc.mavlink_bridge:main",
