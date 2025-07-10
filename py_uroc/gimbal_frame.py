@@ -1,5 +1,7 @@
 # Python file to create gimbal_frame
+import os
 import rclpy
+from dotenv import load_dotenv
 from geometry_msgs.msg import TransformStamped, Point, PoseStamped
 from mavros_msgs.msg import GimbalDeviceSetAttitude
 from rclpy.node import Node
@@ -7,14 +9,17 @@ from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 from tf2_ros import TransformBroadcaster
 from visualization_msgs.msg import Marker
 
+load_dotenv()
+REFRESH_RATE_HZ = float(os.getenv('REFRESH_RATE_HZ'))
+
 
 class GimbalFrame(Node):
     def __init__(self):
         super().__init__("gimbal_frame")
         self.tf_broadcaster = TransformBroadcaster(self)
-        
+
         # Create timer to publish transform at 50Hz
-        self.timer = self.create_timer(0.02, self.publish_loop)
+        self.timer = self.create_timer(REFRESH_RATE_HZ, self.publish_loop)
 
     def publish_loop(self):
         # Get current time

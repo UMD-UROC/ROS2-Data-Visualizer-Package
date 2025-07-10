@@ -1,9 +1,15 @@
+import os
 import rclpy
+from dotenv import load_dotenv
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path
-from .qos_profile import BEST_EFFORT_QOS
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
+from rclpy.qos import QoSProfile , QoSReliabilityPolicy , QoSHistoryPolicy
+
+from .qos_profile import BEST_EFFORT_QOS
+
+load_dotenv()
+REFRESH_RATE_HZ = float(os.getenv('REFRESH_RATE_HZ'))
 
 
 class PathVisualizerNode(Node):
@@ -31,7 +37,7 @@ class PathVisualizerNode(Node):
         )
 
         # Publish at 1 Hz
-        self.timer = self.create_timer(1.0, self.publish_loop)
+        self.timer = self.create_timer(REFRESH_RATE_HZ, self.publish_loop)
 
     def mavros_pose_callback(self, msg: PoseStamped):
         # Update latest pose and header

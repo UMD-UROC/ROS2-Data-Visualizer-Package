@@ -1,5 +1,6 @@
 import message_filters
 import rclpy
+from dotenv import load_dotenv
 from geometry_msgs.msg import Point , PoseStamped
 from mavros_msgs.msg import PositionTarget
 from rclpy.node import Node
@@ -7,6 +8,8 @@ from rclpy.qos import QoSProfile , QoSReliabilityPolicy , QoSHistoryPolicy
 from visualization_msgs.msg import Marker
 
 from .qos_profile import BEST_EFFORT_QOS
+
+load_dotenv()
 
 
 class VectorVisualizerNode(Node):
@@ -47,9 +50,9 @@ class VectorVisualizerNode(Node):
         ]
 
         # Use velocity from PositionTarget message to create velocity vector
-        drone_velocity = mavV_to_rosV([target_msg.velocity.x,
-                                       target_msg.velocity.y,
-                                       target_msg.velocity.z])
+        drone_velocity = mavV_to_rosV(
+            [target_msg.velocity.x, target_msg.velocity.y, target_msg.velocity.z]
+        )
 
         # Create target position by adding velocity vector to current position
         # This creates a velocity vector visualization
@@ -101,6 +104,7 @@ def main(args=None):
 
 if __name__ == "__main__":
     main()
+
 
 def mavV_to_rosV(mavV):
     return [mavV[1], mavV[0], -mavV[2]]

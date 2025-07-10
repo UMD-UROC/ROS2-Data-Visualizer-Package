@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Visualize commanded gimbal attitude as a red yaw-invariant arrow under base_link."""
 
+import os
 import rclpy
+from dotenv import load_dotenv
 from geometry_msgs.msg import TransformStamped , Point , PoseStamped
 from mavros_msgs.msg import GimbalDeviceSetAttitude
 from rclpy.node import Node
@@ -10,6 +12,9 @@ from tf2_ros import TransformBroadcaster
 from visualization_msgs.msg import Marker
 
 from .qos_profile import BEST_EFFORT_QOS
+
+load_dotenv()
+REFRESH_RATE_HZ = float(os.getenv('REFRESH_RATE_HZ'))
 
 
 def quat_inverse(q):
@@ -52,7 +57,7 @@ class GimbalSetAttitudeVisualizer(Node):
         self.marker_pub = self.create_publisher(
             Marker, "/drone/set_attitude/gimbal/marker", 1
         )
-        self.timer = self.create_timer(0.1, self.publish_loop)  # 10 Hz
+        self.timer = self.create_timer(REFRESH_RATE_HZ, self.publish_loop)  # 10 Hz
 
     def on_gimbal_cmd(self, msg: GimbalDeviceSetAttitude):
         # msg.q is already in ENU order [x,y,z,w]

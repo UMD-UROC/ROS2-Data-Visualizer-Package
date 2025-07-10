@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
 """Visualize actual gimbal attitude status as a blue yaw-invariant arrow."""
 
+import os
 import rclpy
-from geometry_msgs.msg import TransformStamped , Point , PoseStamped
+from dotenv import load_dotenv
+from geometry_msgs.msg import TransformStamped, Point, PoseStamped
 from mavros_msgs.msg import GimbalDeviceAttitudeStatus
 from rclpy.node import Node
-from rclpy.qos import QoSProfile , QoSReliabilityPolicy , QoSHistoryPolicy
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 from tf2_ros import TransformBroadcaster
 from visualization_msgs.msg import Marker
 
 from .qos_profile import BEST_EFFORT_QOS
+
+load_dotenv()
+REFRESH_RATE_HZ = float(os.getenv('REFRESH_RATE_HZ'))
 
 
 def quat_inverse(q):
@@ -53,7 +58,7 @@ class GimbalStatusVisualizer(Node):
         self.marker_pub = self.create_publisher(
             Marker, "/drone/attitude_status/gimbal/marker", 1
         )
-        self.timer = self.create_timer(0.1, self.publish_loop)  # 10 Hz
+        self.timer = self.create_timer(REFRESH_RATE_HZ, self.publish_loop)  # 10 Hz
 
     def on_status(self, msg: GimbalDeviceAttitudeStatus):
         self.status_q = [msg.q.x, msg.q.y, msg.q.z, msg.q.w]
