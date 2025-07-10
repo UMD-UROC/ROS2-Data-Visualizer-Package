@@ -50,8 +50,8 @@ def generate_launch_description():
             # Target vector visualization (green arrow)
             Node(
                 package="py_uroc",
-                executable="foxglove_3d_vector_visualization",
-                name="vector_visualizer_node",
+                executable="foxglove_3d_velocity_vector_visualization",
+                name="velocity_vector_visualizer_node",
                 output="screen",
                 parameters=[{"use_sim_time": False}],
             ),

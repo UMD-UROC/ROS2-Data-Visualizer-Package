@@ -29,7 +29,7 @@ setup(
             "foxglove_3d_gimbal_visualization_attitude_status = py_uroc.foxglove_3d_gimbal_visualization_attitude_status:main",
             "foxglove_3d_gimbal_visualization_set_attitude = py_uroc.foxglove_3d_gimbal_visualization_set_attitude:main",
             "foxglove_3d_path_visualization = py_uroc.foxglove_3d_path_visualization:main",
-            "foxglove_3d_vector_visualization = py_uroc.foxglove_3d_vector_visualization:main",
+            "foxglove_3d_velocity_vector_visualization = py_uroc.foxglove_3d_velocity_vector_visualization:main",
             "gimbal_frame = py_uroc.gimbal_frame:main",
             "map_tf_publisher = py_uroc.map_tf_publisher:main",
             "mavlink_bridge = py_uroc.mavlink_bridge:main",
