@@ -1,0 +1,33 @@
+[tool.black]
+# Configure Black to match ROS2 ament_flake8 standards
+line-length = 99
+target-version = ['py310']
+
+# Include/exclude patterns
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    # Exclude common directories
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | install
+  | log
+)/
+'''
+
+# String quote style - use double quotes (standard Python/ROS2 convention)
+skip-string-normalization = false
+
+# Preserve trailing commas (helps with git diffs)
+skip-magic-trailing-comma = false
+
+# Preview features (disabled for stability)
+preview = false
