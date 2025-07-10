@@ -1,0 +1,63 @@
+#!/bin/bash
+
+# Pre-commit hook for py_uroc ROS2 package
+# This hook runs the linting tests before allowing a commit
+
+set -e
+
+echo "Running pre-commit checks for py_uroc..."
+
+# Get the root directory of the ROS2 workspace
+# Navigate up from the package directory to find the workspace
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PACKAGE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+ROS2_WS_DIR="$(cd "$PACKAGE_DIR/../.." && pwd)"
+
+# Check if we're in a ROS2 workspace
+if [ ! -f "$ROS2_WS_DIR/src/py_uroc/package.xml" ]; then
+    echo "Error: Cannot find ROS2 workspace structure"
+    exit 1
+fi
+
+echo "Package directory: $PACKAGE_DIR"
+echo "ROS2 workspace directory: $ROS2_WS_DIR"
+
+# Change to the ROS2 workspace directory
+cd "$ROS2_WS_DIR"
+
+# Source ROS2 environment if available
+if [ -f "/opt/ros/humble/setup.bash" ]; then
+    source /opt/ros/humble/setup.bash
+    echo "Sourced ROS2 Humble environment"
+fi
+
+# Build the package first to ensure tests can run
+echo "Building py_uroc package..."
+if ! colcon build --packages-select py_uroc --cmake-args -DCMAKE_BUILD_TYPE=Release; then
+    echo "❌ Build failed. Please fix build errors before committing."
+    exit 1
+fi
+
+# Run the linting tests for py_uroc package
+echo "Running linting tests..."
+if ! colcon test --packages-select py_uroc --event-handlers console_direct+; then
+    echo "❌ Tests failed. Please fix the following issues before committing:"
+    echo
+    echo "To see detailed test results, run:"
+    echo "  colcon test-result --verbose"
+    echo
+    echo "Common fixes needed:"
+    echo "  - Remove extra whitespace before commas (E203)"
+    echo "  - Shorten lines to ≤99 characters (E501)"
+    echo "  - Remove unused imports (F401)"
+    echo "  - Remove unused variables (F841)"
+    echo "  - Fix docstring formatting (D205, D400, D415)"
+    echo
+    exit 1
+fi
+
+# Show test results
+colcon test-result --verbose
+
+echo "✅ All pre-commit checks passed!"
+echo "Proceeding with commit..."
