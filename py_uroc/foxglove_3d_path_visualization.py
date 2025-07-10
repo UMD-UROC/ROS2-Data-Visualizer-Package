@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 
 from .qos_profile import BEST_EFFORT_QOS
 
