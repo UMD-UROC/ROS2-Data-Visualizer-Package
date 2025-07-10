@@ -1,5 +1,6 @@
 import os
 import rclpy
+from ament_index_python.packages import get_package_share_directory
 from dotenv import load_dotenv
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path
@@ -8,7 +9,9 @@ from rclpy.qos import QoSProfile , QoSReliabilityPolicy , QoSHistoryPolicy
 
 from .qos_profile import BEST_EFFORT_QOS
 
-load_dotenv()
+# Load .env file from the package share directory
+package_share_directory = get_package_share_directory('py_uroc')
+load_dotenv(os.path.join(package_share_directory, '.env'))
 REFRESH_RATE_HZ = float(os.getenv('REFRESH_RATE_HZ'))
 
 

@@ -1,6 +1,7 @@
 # Python file to create gimbal_frame
 import os
 import rclpy
+from ament_index_python.packages import get_package_share_directory
 from dotenv import load_dotenv
 from geometry_msgs.msg import TransformStamped, Point, PoseStamped
 from mavros_msgs.msg import GimbalDeviceSetAttitude
@@ -9,7 +10,9 @@ from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 from tf2_ros import TransformBroadcaster
 from visualization_msgs.msg import Marker
 
-load_dotenv()
+# Load .env file from the package share directory
+package_share_directory = get_package_share_directory('py_uroc')
+load_dotenv(os.path.join(package_share_directory, '.env'))
 REFRESH_RATE_HZ = float(os.getenv('REFRESH_RATE_HZ'))
 
 
