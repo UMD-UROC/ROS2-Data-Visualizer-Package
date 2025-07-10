@@ -12,9 +12,27 @@ class GimbalFrame(Node):
     def __init__(self):
         super().__init__("gimbal_frame")
         self.tf_broadcaster = TransformBroadcaster(self)
+        
+        # Create timer to publish transform at 50Hz
+        self.timer = self.create_timer(0.02, self.publish_loop)
 
     def publish_loop(self):
+        # Get current time
         stamp = self.get_clock().now().to_msg()
+
+        tf_msg = TransformStamped()
+        tf_msg.header.stamp = stamp
+        tf_msg.header.frame_id = "base_link"  # Changed from "map" to "base_link"
+        tf_msg.child_frame_id = "gimbal_frame"
+        tf_msg.transform.translation.x = 0.0
+        tf_msg.transform.translation.y = 0.0
+        tf_msg.transform.translation.z = 0.0
+        # Set identity quaternion (no rotation)
+        tf_msg.transform.rotation.x = 0.0
+        tf_msg.transform.rotation.y = 0.0
+        tf_msg.transform.rotation.z = 0.0
+        tf_msg.transform.rotation.w = 1.0
+        self.tf_broadcaster.sendTransform(tf_msg)
 
 
 def main(args=None):
@@ -27,7 +45,8 @@ def main(args=None):
         pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":

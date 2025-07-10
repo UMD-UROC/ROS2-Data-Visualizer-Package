@@ -16,7 +16,13 @@ def generate_launch_description():
                 output="screen",
                 parameters=[{"use_sim_time": False}],
             ),
-
+            Node(
+                package="py_uroc",
+                executable="gimbal_frame",
+                name="gimbal_frame",
+                output="screen",
+                parameters=[{"use_sim_time": False}],
+            ),
             # Path visualization in global map frame
             Node(
                 package="py_uroc",
@@ -25,7 +31,6 @@ def generate_launch_description():
                 output="screen",
                 parameters=[{"use_sim_time": False}],
             ),
-
             # Gimbal actual-status visualization (red arrow)
             Node(
                 package="py_uroc",
@@ -34,7 +39,6 @@ def generate_launch_description():
                 output="screen",
                 parameters=[{"use_sim_time": False}],
             ),
-
             # Gimbal set-attitude visualization (red arrow)
             Node(
                 package="py_uroc",
@@ -43,7 +47,6 @@ def generate_launch_description():
                 output="screen",
                 parameters=[{"use_sim_time": False}],
             ),
-
             # Target vector visualization (green arrow)
             Node(
                 package="py_uroc",
@@ -52,7 +55,6 @@ def generate_launch_description():
                 output="screen",
                 parameters=[{"use_sim_time": False}],
             ),
-
             # MAVLink ↔ ROS2 bridge
             Node(
                 package="py_uroc",
