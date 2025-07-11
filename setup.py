@@ -1,7 +1,7 @@
 import os
 from glob import glob
 
-from setuptools import find_packages, setup
+from setuptools import find_packages , setup
 
 package_name = "py_uroc"
 
@@ -33,6 +33,7 @@ setup(
             "path_visualizer = py_uroc.path_visualizer:main",
             "velocity_vector_visualizer = py_uroc.velocity_vector_visualizer:main",
             "gimbal_frame = py_uroc.gimbal_frame:main",
+            "gimbal_visualizer = py_uroc.gimbal_visualizer:main",
             "map_tf_publisher = py_uroc.map_tf_publisher:main",
             "mavlink_bridge = py_uroc.mavlink_bridge:main",
         ],
