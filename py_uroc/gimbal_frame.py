@@ -1,4 +1,6 @@
-"""Gimbal frame transform publisher for UROC visualization.
+"""
+
+Gimbal frame transform publisher for UROC visualization.
 
 This module publishes a static transform between the drone's base_link frame
 and a gimbal_frame. This provides a reference frame for gimbal visualization
@@ -23,15 +25,20 @@ REFRESH_RATE_HZ = float(os.getenv("REFRESH_RATE_HZ"))
 
 
 class GimbalFrame(Node):
-    """ROS2 node for publishing gimbal frame transforms.
+    """
+    ROS2 node for publishing gimbal frame transforms.
 
     This node publishes a static transform from base_link to gimbal_frame
     at a regular interval. The gimbal_frame serves as a reference coordinate
     system for gimbal-related visualizations and transformations.
 
-    Attributes:
-        tf_broadcaster: Transform broadcaster for publishing TF data
-        timer: Timer for periodic transform publication
+    Attributes
+    ----------
+    tf_broadcaster : TransformBroadcaster
+        Transform broadcaster for publishing TF data
+    timer : Timer
+        Timer for periodic transform publication
+
     """
 
     def __init__(self):
@@ -44,7 +51,8 @@ class GimbalFrame(Node):
         self.timer = self.create_timer(REFRESH_RATE_HZ, self.publish_loop)
 
     def publish_loop(self):
-        """Publish the base_link to gimbal_frame transform.
+        """
+        Publish the base_link to gimbal_frame transform.
 
         Creates and publishes a static transform with no translation or rotation,
         establishing gimbal_frame as coincident with base_link. This provides
@@ -75,10 +83,14 @@ class GimbalFrame(Node):
 
 
 def main(args=None):
-    """Main entry point for the gimbal frame publisher node.
+    """
+    Execute the gimbal frame publisher node.
 
-    Args:
-        args: Command line arguments (optional)
+    Parameters
+    ----------
+    args : list, optional
+        Command line arguments
+
     """
     rclpy.init(args=args)
     node = GimbalFrame()

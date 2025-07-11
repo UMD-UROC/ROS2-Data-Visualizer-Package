@@ -1,4 +1,5 @@
-"""Setup configuration for UROC ROS2 Python Package.
+"""
+Setup configuration for UROC ROS2 Python Package.
 
 This package provides drone visualization capabilities for the University of
 Maryland Robotics Club (UROC) as part of the MAVInsight project. It includes

@@ -60,7 +60,8 @@ class MAVLinkGimbalBridge(Node):
         self.get_logger().info("MAVLink Bridge started")
 
     def mavlink_listener(self):  # noqa: C901
-        """Background thread function for listening to MAVLink messages.
+        """
+        Listen to MAVLink messages in background thread.
 
         Continuously monitors the MAVLink connection for incoming messages
         and dispatches them to appropriate processing functions. Runs in
@@ -92,14 +93,18 @@ class MAVLinkGimbalBridge(Node):
                 continue
 
     def process_gimbal_message(self, mavlink_msg):
-        """Convert MAVLink gimbal attitude message to ROS2 format.
+        """
+        Convert MAVLink gimbal attitude message to ROS2 format.
 
         Processes GIMBAL_DEVICE_SET_ATTITUDE messages from MAVLink and converts
         them to ROS2 GimbalDeviceSetAttitude messages with proper coordinate
         frame transformations.
 
-        Args:
-            mavlink_msg: MAVLink GIMBAL_DEVICE_SET_ATTITUDE message
+        Parameters
+        ----------
+        mavlink_msg : MAVLink message
+            MAVLink GIMBAL_DEVICE_SET_ATTITUDE message
+
         """
         try:
             ros_msg = GimbalDeviceSetAttitude()
@@ -136,14 +141,18 @@ class MAVLinkGimbalBridge(Node):
             self.get_logger().error(f"Error processing gimbal message: {e}")
 
     def process_position_target(self, mavlink_msg):
-        """Convert MAVLink position target to ROS2 format.
+        """
+        Convert MAVLink position target to ROS2 format.
 
         Processes POSITION_TARGET_LOCAL_NED messages from MAVLink and converts
         them to ROS2 PositionTarget messages with NED to ENU coordinate
         frame transformation.
 
-        Args:
-            mavlink_msg: MAVLink POSITION_TARGET_LOCAL_NED message
+        Parameters
+        ----------
+        mavlink_msg : MAVLink message
+            MAVLink POSITION_TARGET_LOCAL_NED message
+
         """
         try:
             ros_msg = PositionTarget()
@@ -193,10 +202,14 @@ class MAVLinkGimbalBridge(Node):
 
 
 def main(args=None):
-    """Main entry point for the MAVLink bridge node.
+    """
+    Execute the MAVLink bridge node.
 
-    Args:
-        args: Command line arguments (optional)
+    Parameters
+    ----------
+    args : list, optional
+        Command line arguments
+
     """
     rclpy.init(args=args)
 

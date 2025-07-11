@@ -1,4 +1,6 @@
-"""Gimbal visualization for UROC drone system.
+"""
+
+Gimbal visualization for UROC drone system.
 
 This module provides visualization capabilities for gimbal orientation in 3D space.
 It can visualize either gimbal set attitude commands or actual gimbal status,
@@ -27,29 +29,42 @@ REFRESH_RATE_HZ = float(os.getenv("REFRESH_RATE_HZ"))
 
 
 def quat_inverse(q):
-    """Compute the inverse of a quaternion.
+    """
+    Compute the inverse of a quaternion.
 
-    Args:
-        q: Quaternion as [x, y, z, w]
+    Parameters
+    ----------
+    q : array-like
+        Quaternion as [x, y, z, w]
 
-    Returns:
+    Returns
+    -------
+    list
         Inverse quaternion as [x, y, z, w]
+
     """
     x, y, z, w = q
     return [-x, -y, -z, w]
 
 
 def quat_multiply(a, b):
-    """Multiply two quaternions.
+    """
+    Multiply two quaternions.
 
     Performs quaternion multiplication: result = a * b
 
-    Args:
-        a: First quaternion as [x, y, z, w]
-        b: Second quaternion as [x, y, z, w]
+    Parameters
+    ----------
+    a : array-like
+        First quaternion as [x, y, z, w]
+    b : array-like
+        Second quaternion as [x, y, z, w]
 
-    Returns:
+    Returns
+    -------
+    list
         Product quaternion as [x, y, z, w]
+
     """
     ax, ay, az, aw = a
     bx, by, bz, bw = b
@@ -62,21 +77,31 @@ def quat_multiply(a, b):
 
 
 class GimbalVisualizer(Node):
-    """ROS2 node for visualizing gimbal orientation and commands.
+    """
+    ROS2 node for visualizing gimbal orientation and commands.
 
     This node can visualize either gimbal set attitude commands or actual
     gimbal status, depending on the visualizer_topic parameter. It creates
     arrow markers in the gimbal frame to show gimbal orientation in 3D
     visualization tools.
 
-    Attributes:
-        tf_broadcaster: Transform broadcaster for coordinate frames
-        status_q: Current gimbal status quaternion [x, y, z, w]
-        drone_q: Current drone orientation quaternion [x, y, z, w]
-        flags: Gimbal status flags
-        visualizer_topic: Topic name determining visualization mode
-        marker_pub: Publisher for visualization markers
-        timer: Timer for periodic visualization updates
+    Attributes
+    ----------
+    tf_broadcaster : TransformBroadcaster
+        Transform broadcaster for coordinate frames
+    status_q : list
+        Current gimbal status quaternion [x, y, z, w]
+    drone_q : list
+        Current drone orientation quaternion [x, y, z, w]
+    flags : int
+        Gimbal status flags
+    visualizer_topic : str
+        Topic name determining visualization mode
+    marker_pub : Publisher
+        Publisher for visualization markers
+    timer : Timer
+        Timer for periodic visualization updates
+
     """
 
     def __init__(self):
@@ -139,36 +164,48 @@ class GimbalVisualizer(Node):
         self.timer = self.create_timer(REFRESH_RATE_HZ, self.publish_loop)
 
     def on_status(self, msg: GimbalDeviceAttitudeStatus):
-        """Handle incoming gimbal attitude status messages.
+        """
+        Handle incoming gimbal attitude status messages.
 
         Updates the current gimbal orientation and status flags from
         the actual gimbal hardware feedback.
 
-        Args:
-            msg: Gimbal device attitude status message
+        Parameters
+        ----------
+        msg : GimbalDeviceAttitudeStatus
+            Gimbal device attitude status message
+
         """
         self.status_q = [msg.q.x, msg.q.y, msg.q.z, msg.q.w]
         self.flags = msg.flags
 
     def on_gimbal_cmd(self, msg: GimbalDeviceSetAttitude):
-        """Handle incoming gimbal set attitude command messages.
+        """
+        Handle incoming gimbal set attitude command messages.
 
         Updates the commanded gimbal orientation from gimbal control commands.
         The quaternion is already in ENU coordinate frame.
 
-        Args:
-            msg: Gimbal device set attitude command message
+        Parameters
+        ----------
+        msg : GimbalDeviceSetAttitude
+            Gimbal device set attitude command message
+
         """
         # Store commanded quaternion (already in ENU order [x,y,z,w])
         self.cmd_q = [msg.q.x, msg.q.y, msg.q.z, msg.q.w]
 
     def on_drone_pose(self, msg: PoseStamped):
-        """Handle incoming drone pose messages.
+        """
+        Handle incoming drone pose messages.
 
         Updates the current drone orientation for coordinate frame reference.
 
-        Args:
-            msg: Drone pose message from MAVROS
+        Parameters
+        ----------
+        msg : PoseStamped
+            Drone pose message from MAVROS
+
         """
         self.drone_q = [
             msg.pose.orientation.x,
@@ -178,7 +215,8 @@ class GimbalVisualizer(Node):
         ]
 
     def publish_loop(self):
-        """Main visualization loop for publishing gimbal visualization markers.
+        """
+        Publish gimbal visualization markers.
 
         Creates and publishes arrow markers showing gimbal orientation based on
         the configured visualization mode (command vs status).
@@ -251,10 +289,14 @@ class GimbalVisualizer(Node):
 
 
 def main(args=None):
-    """Main entry point for the gimbal visualizer node.
+    """
+    Execute the gimbal visualizer node.
 
-    Args:
-        args: Command line arguments (optional)
+    Parameters
+    ----------
+    args : list, optional
+        Command line arguments
+
     """
     rclpy.init(args=args)
     node = GimbalVisualizer()

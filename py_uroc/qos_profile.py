@@ -1,4 +1,5 @@
-"""ROS2 Quality of Service (QoS) profile configurations for UROC nodes.
+"""
+ROS2 Quality of Service (QoS) profile configurations for UROC nodes.
 
 This module defines standard QoS profiles used across the UROC package
 for different types of message communication patterns.

@@ -1,4 +1,5 @@
-"""Drone flight path visualization for UROC system.
+"""
+Drone flight path visualization for UROC system.
 
 This module provides real-time visualization of drone flight paths by collecting
 pose data and creating path trails for display in 3D visualization tools like
@@ -25,20 +26,30 @@ REFRESH_RATE_HZ = float(os.getenv("REFRESH_RATE_HZ"))
 
 
 class PathVisualizer(Node):
-    """ROS2 node for visualizing drone flight paths in global map frame.
+    """
+    ROS2 node for visualizing drone flight paths in global map frame.
 
     This node subscribes to MAVROS pose data, republishes it on a standardized
     topic, and maintains an accumulated path trail for visualization in tools
     like Foxglove. The path grows continuously as the drone moves.
 
-    Attributes:
-        drone_pose_pub: Publisher for individual drone pose messages
-        path: Accumulated path message containing flight history
-        path_pub: Publisher for flight path visualization
-        drone_pos: Current drone position [x, y, z] in map frame
-        drone_q: Current drone orientation quaternion [x, y, z, w]
-        latest_header: Most recent message header for timestamping
-        timer: Timer for periodic publication updates
+    Attributes
+    ----------
+    drone_pose_pub : Publisher
+        Publisher for individual drone pose messages
+    path : Path
+        Accumulated path message containing flight history
+    path_pub : Publisher
+        Publisher for flight path visualization
+    drone_pos : list
+        Current drone position [x, y, z] in map frame
+    drone_q : list
+        Current drone orientation quaternion [x, y, z, w]
+    latest_header : Header
+        Most recent message header for timestamping
+    timer : Timer
+        Timer for periodic publication updates
+
     """
 
     def __init__(self):
@@ -69,13 +80,17 @@ class PathVisualizer(Node):
         self.timer = self.create_timer(REFRESH_RATE_HZ, self.publish_loop)
 
     def mavros_pose_callback(self, msg: PoseStamped):
-        """Handle incoming MAVROS pose messages.
+        """
+        Handle incoming MAVROS pose messages.
 
         Updates the current drone pose and header information from MAVROS.
         The pose is already in the ENU map frame from MAVROS processing.
 
-        Args:
-            msg: Pose message from MAVROS local_position topic
+        Parameters
+        ----------
+        msg : PoseStamped
+            Pose message from MAVROS local_position topic
+
         """
         # Extract position from pose message
         self.drone_pos = [
@@ -96,7 +111,8 @@ class PathVisualizer(Node):
         self.latest_header = msg.header
 
     def publish_loop(self):
-        """Main publication loop for pose and path data.
+        """
+        Publish pose and path data.
 
         Publishes the current drone pose and adds it to the accumulated path
         for continuous trail visualization. Uses consistent timestamping
@@ -136,10 +152,14 @@ class PathVisualizer(Node):
 
 
 def main(args=None):
-    """Main entry point for the path visualizer node.
+    """
+    Execute the path visualizer node.
 
-    Args:
-        args: Command line arguments (optional)
+    Parameters
+    ----------
+    args : list, optional
+        Command line arguments
+
     """
     rclpy.init(args=args)
     node = PathVisualizer()

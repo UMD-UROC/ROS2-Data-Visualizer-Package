@@ -1,4 +1,5 @@
-"""Velocity vector visualization for UROC drone system.
+"""
+Velocity vector visualization for UROC drone system.
 
 This module creates real-time visualization of drone velocity vectors as 3D arrows
 in the map frame. It subscribes to drone position and velocity data, then publishes
@@ -26,19 +27,28 @@ REFRESH_RATE_HZ = float(os.getenv("REFRESH_RATE_HZ"))
 
 
 class VelocityVectorVisualizer(Node):
-    """ROS2 node that visualizes drone velocity vectors as 3D arrows.
+    """
+    ROS2 node that visualizes drone velocity vectors as 3D arrows.
 
     This node creates real-time visualization of drone velocity by drawing green
     arrows from the drone's current position in the direction of its velocity
     vector. The arrows are displayed in the map frame for global reference.
 
-    Attributes:
-        drone_velocity: Current drone velocity in map frame [x, y, z] (m/s)
-        drone_pos: Current drone position in map frame [x, y, z] (m)
-        target_velocity: Target velocity from position commands [x, y, z] (m/s)
-        target_pos: Target position from position commands [x, y, z] (m)
-        marker_pub: Publisher for velocity vector visualization markers
-        timer: Timer for periodic visualization updates
+    Attributes
+    ----------
+    drone_velocity : list
+        Current drone velocity in map frame [x, y, z] (m/s)
+    drone_pos : list
+        Current drone position in map frame [x, y, z] (m)
+    target_velocity : list
+        Target velocity from position commands [x, y, z] (m/s)
+    target_pos : list
+        Target position from position commands [x, y, z] (m)
+    marker_pub : Publisher
+        Publisher for velocity vector visualization markers
+    timer : Timer
+        Timer for periodic visualization updates
+
     """
 
     def __init__(self):
@@ -74,28 +84,38 @@ class VelocityVectorVisualizer(Node):
         self.timer = self.create_timer(REFRESH_RATE_HZ, self.publish_loop)
 
     def mavV_to_rosV(self, mavV):
-        """Convert MAVLink NED velocity vector to ROS ENU velocity vector.
+        """
+        Convert MAVLink NED velocity vector to ROS ENU velocity vector.
 
         MAVLink uses North-East-Down (NED) coordinate system while ROS uses
         East-North-Up (ENU). This function performs the coordinate transformation.
 
-        Args:
-            mavV: Velocity vector in MAVLink NED frame [north, east, down]
+        Parameters
+        ----------
+        mavV : list
+            Velocity vector in MAVLink NED frame [north, east, down]
 
-        Returns:
+        Returns
+        -------
+        list
             Velocity vector in ROS ENU frame [east, north, up]
+
         """
         # NED to ENU conversion: [N,E,D] -> [E,N,-D]
         return [mavV[1], mavV[0], -mavV[2]]
 
     def on_local_position(self, target_msg: PositionTarget):
-        """Handle incoming position target messages containing velocity data.
+        """
+        Handle incoming position target messages containing velocity data.
 
         Extracts velocity information from MAVLink position targets and converts
         from NED to ENU coordinate frame for ROS visualization.
 
-        Args:
-            target_msg: Position target message with velocity data
+        Parameters
+        ----------
+        target_msg : PositionTarget
+            Position target message with velocity data
+
         """
         # Extract velocity from position target and convert NED to ENU
         self.drone_velocity = self.mavV_to_rosV(
@@ -103,13 +123,17 @@ class VelocityVectorVisualizer(Node):
         )
 
     def on_drone_pos(self, drone_pose_msg: PoseStamped):
-        """Handle incoming drone pose messages.
+        """
+        Handle incoming drone pose messages.
 
         Updates the current drone position for velocity vector visualization
         starting point.
 
-        Args:
-            drone_pose_msg: Current drone pose in map frame
+        Parameters
+        ----------
+        drone_pose_msg : PoseStamped
+            Current drone pose in map frame
+
         """
         self.drone_pos = [
             drone_pose_msg.pose.position.x,
@@ -118,7 +142,8 @@ class VelocityVectorVisualizer(Node):
         ]
 
     def publish_loop(self):
-        """Main visualization loop for publishing velocity vector markers.
+        """
+        Publish velocity vector markers.
 
         Creates and publishes arrow markers showing the drone's velocity vector
         as a green arrow pointing from current position in the direction of motion.
@@ -172,10 +197,14 @@ class VelocityVectorVisualizer(Node):
 
 
 def main(args=None):
-    """Main entry point for the velocity vector visualizer node.
+    """
+    Execute the velocity vector visualizer node.
 
-    Args:
-        args: Command line arguments (optional)
+    Parameters
+    ----------
+    args : list, optional
+        Command line arguments
+
     """
     rclpy.init(args=args)
     node = VelocityVectorVisualizer()

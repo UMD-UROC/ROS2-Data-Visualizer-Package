@@ -1,4 +1,5 @@
-"""Launch file for UROC drone visualization system.
+"""
+Launch file for UROC drone visualization system.
 
 This launch file starts all the necessary nodes for comprehensive drone
 visualization in tools like Foxglove, including:
@@ -17,10 +18,14 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    """Generate the launch description for UROC visualization nodes.
+    """
+    Generate the launch description for UROC visualization nodes.
 
-    Returns:
-        LaunchDescription: Complete launch configuration with all visualization nodes
+    Returns
+    -------
+    LaunchDescription
+        Complete launch configuration with all visualization nodes
+
     """
     # Get package configuration directory for parameter files
     config_dir = get_package_share_directory("py_uroc")
