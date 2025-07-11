@@ -1,0 +1,3 @@
+/**/*:
+  ros__parameters:
+    visualizer_topic: "/mavros/gimbal_control/device/attitude_status"

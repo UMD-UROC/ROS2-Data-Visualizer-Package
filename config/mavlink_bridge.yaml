@@ -1,0 +1,5 @@
+/**/*:
+  ros__parameters:
+    mavlink_connection: "udp:localhost:14445"
+    system_id: 1
+    component_id: 1

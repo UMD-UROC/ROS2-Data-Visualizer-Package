@@ -13,6 +13,7 @@ setup(
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
         ("share/" + package_name, ["package.xml"]),
         (os.path.join("share", package_name, "launch"), glob("launch/*.py")),
+        (os.path.join("share", package_name, "config"), glob("config/*.yaml")),
         ("share/" + package_name, [".env"]),
     ],
     install_requires=[],
@@ -20,16 +21,12 @@ setup(
     maintainer="cdenihan",
     maintainer_email="cdenihan@proton.me",
     description="UMD UROC ROS2 Python Package",
-    license="Apache-2.0",
+    license="MIT",
     extras_require={
         "test": ["pytest"],
     },
     entry_points={
         "console_scripts": [
-            "foxglove_3d_gimbal_attitude_status_visualizer = "
-            "py_uroc.foxglove_3d_gimbal_attitude_status_visualizer:main",
-            "foxglove_3d_gimbal_set_attitude_visualizer = "
-            "py_uroc.foxglove_3d_gimbal_set_attitude_visualizer:main",
             "path_visualizer = py_uroc.path_visualizer:main",
             "velocity_vector_visualizer = py_uroc.velocity_vector_visualizer:main",
             "gimbal_frame = py_uroc.gimbal_frame:main",

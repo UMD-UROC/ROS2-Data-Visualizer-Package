@@ -1,11 +1,14 @@
-"""Unified launch file for UROC visualization and gimbal command bridge."""
-
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    """Generate unified launch description for all UROC nodes."""
+    config_dir = get_package_share_directory("py_uroc")
+    attitude_status_config = config_dir + "/config/attitude_status.yaml"
+    set_attitude_config = config_dir + "/config/set_attitude.yaml"
+    mavlink_bridge_config = config_dir + "/config/mavlink_bridge.yaml"
+
     return LaunchDescription(
         [
             # TF bridge: map → base_link
@@ -14,38 +17,32 @@ def generate_launch_description():
                 executable="map_tf_publisher",
                 name="map_tf_publisher",
                 output="screen",
-                parameters=[{"use_sim_time": False}],
             ),
             Node(
                 package="py_uroc",
                 executable="gimbal_frame",
                 name="gimbal_frame",
                 output="screen",
-                parameters=[{"use_sim_time": False}],
             ),
-            # Path visualization in global map frame
             Node(
                 package="py_uroc",
                 executable="path_visualizer",
                 name="path_visualizer",
                 output="screen",
-                parameters=[{"use_sim_time": False}],
             ),
-            # Gimbal actual-status visualization (red arrow)
             Node(
                 package="py_uroc",
-                executable="foxglove_3d_gimbal_attitude_status_visualizer",
-                name="gimbal_attitude_status_visualizer",
+                executable="gimbal_visualizer",
+                name="gimbal_visualizer_attitude_status",
                 output="screen",
-                parameters=[{"use_sim_time": False}],
+                parameters=[attitude_status_config],
             ),
-            # Gimbal set-attitude visualization (red arrow)
             Node(
                 package="py_uroc",
-                executable="foxglove_3d_gimbal_set_attitude_visualizer",
-                name="gimbal_set_attitude_visualizer",
+                executable="gimbal_visualizer",
+                name="gimbal_visualizer_set_attitude",
                 output="screen",
-                parameters=[{"use_sim_time": False}],
+                parameters=[set_attitude_config],
             ),
             # Target vector visualization (green arrow)
             Node(
@@ -53,7 +50,6 @@ def generate_launch_description():
                 executable="velocity_vector_visualizer",
                 name="velocity_vector_visualizer",
                 output="screen",
-                parameters=[{"use_sim_time": False}],
             ),
             # MAVLink ↔ ROS2 bridge
             Node(
@@ -61,13 +57,7 @@ def generate_launch_description():
                 executable="mavlink_bridge",
                 name="mavlink_bridge",
                 output="screen",
-                parameters=[
-                    {
-                        "mavlink_connection": "udp:localhost:14445",
-                        "system_id": 1,
-                        "component_id": 1,
-                    }
-                ],
+                parameters=[mavlink_bridge_config],
             ),
         ]
     )
