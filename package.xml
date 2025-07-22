@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-    <name>py_uroc</name>
+    <name>umd_uroc_data_visualizer</name>
     <version>0.0.0</version>
-    <description>UMD UROC ROS2 Python Package</description>
+    <description>The University of Maryland's UROC lab's live drone data visualizer node.</description>
     <maintainer email="cdenihan@proton.me">cdenihan</maintainer>
     <license>MIT</license>
 

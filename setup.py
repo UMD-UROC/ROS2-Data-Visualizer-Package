@@ -3,7 +3,7 @@ from glob import glob
 
 from setuptools import find_packages, setup
 
-package_name = "py_uroc"
+package_name = "umd_uroc_data_visualizer"
 
 setup(
     name=package_name,
@@ -20,19 +20,19 @@ setup(
     zip_safe=True,
     maintainer="cdenihan",
     maintainer_email="cdenihan@proton.me",
-    description="UMD UROC ROS2 Python Package",
+    description="The University of Maryland's UROC lab's live drone data visualizer node.",
     license="MIT",
     extras_require={
         "test": ["pytest"],
     },
     entry_points={
         "console_scripts": [
-            "path_visualizer = py_uroc.path_visualizer:main",
-            "velocity_vector_visualizer = py_uroc.velocity_vector_visualizer:main",
-            "gimbal_frame = py_uroc.gimbal_frame:main",
-            "gimbal_visualizer = py_uroc.gimbal_visualizer:main",
-            "map_tf_publisher = py_uroc.map_tf_publisher:main",
-            "mavlink_bridge = py_uroc.mavlink_bridge:main",
+            "path_visualizer = umd_uroc_data_visualizer.path_visualizer:main",
+            "velocity_vector_visualizer = umd_uroc_data_visualizer.velocity_vector_visualizer:main",
+            "gimbal_frame = umd_uroc_data_visualizer.gimbal_frame:main",
+            "gimbal_visualizer = umd_uroc_data_visualizer.gimbal_visualizer:main",
+            "map_tf_publisher = umd_uroc_data_visualizer.map_tf_publisher:main",
+            "mavlink_bridge = umd_uroc_data_visualizer.mavlink_bridge:main",
         ],
     },
 )
