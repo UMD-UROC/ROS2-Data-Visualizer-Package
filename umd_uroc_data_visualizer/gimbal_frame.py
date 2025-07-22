@@ -18,7 +18,7 @@ from rclpy.node import Node
 from tf2_ros import TransformBroadcaster
 
 # Load environment configuration from the package share directory
-package_share_directory = get_package_share_directory("py_uroc")
+package_share_directory = get_package_share_directory("umd_uroc_data_visualizer")
 load_dotenv(os.path.join(package_share_directory, ".env"))
 # Refresh rate for transform publication (Hz)
 REFRESH_RATE_HZ = float(os.getenv("REFRESH_RATE_HZ"))

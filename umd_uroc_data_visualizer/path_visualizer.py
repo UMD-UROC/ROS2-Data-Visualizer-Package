@@ -19,7 +19,7 @@ from rclpy.node import Node
 from .qos_profile import BEST_EFFORT_QOS
 
 # Load environment configuration from the package share directory
-package_share_directory = get_package_share_directory("py_uroc")
+package_share_directory = get_package_share_directory("umd_uroc_data_visualizer")
 load_dotenv(os.path.join(package_share_directory, ".env"))
 # Refresh rate for path visualization updates (Hz)
 REFRESH_RATE_HZ = float(os.getenv("REFRESH_RATE_HZ"))
