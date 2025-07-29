@@ -5,7 +5,7 @@
 
 set -e
 
-echo "Running pre-commit checks for py_uroc..."
+echo "Running pre-commit checks for UMD UROC Data Visualizer..."
 
 # Get the root directory of the ROS2 workspace
 # Navigate up from the package directory to find the workspace
@@ -14,7 +14,7 @@ PACKAGE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 ROS2_WS_DIR="$(cd "$PACKAGE_DIR/../.." && pwd)"
 
 # Check if we're in a ROS2 workspace
-if [ ! -f "$ROS2_WS_DIR/src/py_uroc/package.xml" ]; then
+if [ ! -f "$ROS2_WS_DIR/src/umd_uroc_data_visualizer/package.xml" ]; then
     echo "Error: Cannot find ROS2 workspace structure"
     exit 1
 fi
@@ -32,15 +32,15 @@ if [ -f "/opt/ros/humble/setup.bash" ]; then
 fi
 
 # Build the package first to ensure tests can run
-echo "Building py_uroc package..."
-if ! colcon build --packages-select py_uroc --cmake-args -DCMAKE_BUILD_TYPE=Release; then
+echo "Building umd_uroc_data_visualizer package..."
+if ! colcon build --packages-select umd_uroc_data_visualizer --cmake-args -DCMAKE_BUILD_TYPE=Release; then
     echo "❌ Build failed. Please fix build errors before committing."
     exit 1
 fi
 
 # Run the linting tests for py_uroc package
 echo "Running linting tests..."
-if ! colcon test --packages-select py_uroc --event-handlers console_direct+; then
+if ! colcon test --packages-select umd_uroc_data_visualizer --event-handlers console_direct+; then
     echo "❌ Tests failed. Please fix the following issues before committing:"
     echo
     echo "To see detailed test results, run:"

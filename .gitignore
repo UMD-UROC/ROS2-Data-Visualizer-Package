@@ -2,3 +2,5 @@ launch/__pycache__
 umd_uroc_data_visualizer/__pycache__
 */__pycache__
 .ropeproject
+.idea
+umd_uroc_data_visualizer.egg-info
