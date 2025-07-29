@@ -1,0 +1,7 @@
+[console_scripts]
+gimbal_frame = umd_uroc_data_visualizer.gimbal_frame:main
+gimbal_visualizer = umd_uroc_data_visualizer.gimbal_visualizer:main
+map_tf_publisher = umd_uroc_data_visualizer.map_tf_publisher:main
+mavlink_bridge = umd_uroc_data_visualizer.mavlink_bridge:main
+path_visualizer = umd_uroc_data_visualizer.path_visualizer:main
+velocity_vector_visualizer = umd_uroc_data_visualizer.velocity_vector_visualizer:main
