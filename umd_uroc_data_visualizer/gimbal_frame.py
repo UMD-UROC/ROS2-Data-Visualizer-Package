@@ -72,11 +72,12 @@ class GimbalFrame(Node):
         tf_msg.transform.translation.y = 0.0
         tf_msg.transform.translation.z = 0.0
 
-        # Set identity quaternion (no rotation relative to base_link)
+        # Set 180-degree rotation around Z-axis to align coordinate frames properly
+        # This helps address the forward/backward direction issue
         tf_msg.transform.rotation.x = 0.0
         tf_msg.transform.rotation.y = 0.0
-        tf_msg.transform.rotation.z = 0.0
-        tf_msg.transform.rotation.w = 1.0
+        tf_msg.transform.rotation.z = 1.0  # 180-degree rotation around Z-axis
+        tf_msg.transform.rotation.w = 0.0
 
         # Publish the transform
         self.tf_broadcaster.sendTransform(tf_msg)

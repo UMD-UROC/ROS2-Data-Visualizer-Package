@@ -76,6 +76,34 @@ def quat_multiply(a, b):
     ]
 
 
+def quat_rotate_point(q, point):
+    """
+    Rotate a 3D point using a quaternion.
+
+    Parameters
+    ----------
+    q : array-like
+        Quaternion as [x, y, z, w]
+    point : array-like
+        3D point as [x, y, z]
+
+    Returns
+    -------
+    list
+        Rotated 3D point as [x, y, z]
+
+    """
+    # Convert point to quaternion (w=0)
+    point_quat = [point[0], point[1], point[2], 0.0]
+
+    # Compute q * point * q_inverse
+    q_inverse = quat_inverse(q)
+    temp = quat_multiply(q, point_quat)
+    result_quat = quat_multiply(temp, q_inverse)
+
+    return [result_quat[0], result_quat[1], result_quat[2]]
+
+
 class GimbalVisualizer(Node):
     """
     ROS2 node for visualizing gimbal orientation and commands.
@@ -111,6 +139,7 @@ class GimbalVisualizer(Node):
 
         # Initialize gimbal and drone orientation quaternions (identity)
         self.status_q = [0.0, 0.0, 0.0, 1.0]
+        self.cmd_q = [0.0, 0.0, 0.0, 1.0]
         self.drone_q = [0.0, 0.0, 0.0, 1.0]
         self.flags = None
 
@@ -219,13 +248,20 @@ class GimbalVisualizer(Node):
         Publish gimbal visualization markers.
 
         Creates and publishes arrow markers showing gimbal orientation based on
-        the configured visualization mode (command vs status).
+        the configured visualization mode (command vs status). The arrows are
+        rotated according to the actual gimbal quaternion data.
         """
         # Get current timestamp for marker messages
         stamp = self.get_clock().now().to_msg()
 
         if self.visualizer_topic == "/mavros/gimbal_control/device/set_attitude":
             # Visualize gimbal set attitude commands (red arrows)
+            # Define base arrow direction pointing forward in gimbal coordinate system
+            base_direction = [1.0, 0.0, 0.0]  # Forward direction
+
+            # Rotate the base direction using the commanded gimbal quaternion
+            rotated_direction = quat_rotate_point(self.cmd_q, base_direction)
+
             marker = Marker()
             marker.header.stamp = stamp
             marker.header.frame_id = "gimbal_frame"
@@ -234,10 +270,11 @@ class GimbalVisualizer(Node):
             marker.type = Marker.ARROW
             marker.action = Marker.ADD
 
-            # Arrow points from origin to (-1, 0, 0) in gimbal frame
+            # Arrow points from origin to rotated direction
             marker.points = [
                 Point(x=0.0, y=0.0, z=0.0),
-                Point(x=-1.0, y=0.0, z=0.0),
+                Point(x=rotated_direction[0], y=rotated_direction[1],
+                      z=rotated_direction[2]),
             ]
 
             # Set arrow geometry and red color for commands
@@ -259,6 +296,12 @@ class GimbalVisualizer(Node):
                 return
 
             # Visualize actual gimbal attitude status (blue arrows)
+            # Define base arrow direction pointing forward in gimbal coordinate system
+            base_direction = [1.0, 0.0, 0.0]  # Forward direction
+
+            # Rotate the base direction using the status gimbal quaternion
+            rotated_direction = quat_rotate_point(self.status_q, base_direction)
+
             marker = Marker()
             marker.header.stamp = stamp
             marker.header.frame_id = "gimbal_frame"
@@ -267,10 +310,11 @@ class GimbalVisualizer(Node):
             marker.type = Marker.ARROW
             marker.action = Marker.ADD
 
-            # Arrow points from origin to (-1, 0, 0) in gimbal frame
+            # Arrow points from origin to rotated direction
             marker.points = [
                 Point(x=0.0, y=0.0, z=0.0),
-                Point(x=-1.0, y=0.0, z=0.0),
+                Point(x=rotated_direction[0], y=rotated_direction[1],
+                      z=rotated_direction[2]),
             ]
 
             # Set arrow geometry and blue color for status

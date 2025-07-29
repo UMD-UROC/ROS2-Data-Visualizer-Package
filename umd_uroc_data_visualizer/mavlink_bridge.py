@@ -115,11 +115,12 @@ class MAVLinkGimbalBridge(Node):
             ros_msg.flags = mavlink_msg.flags
 
             # Convert quaternion from MAVLink [w, x, y, z] to ROS [x, y, z, w]
-            # Also apply coordinate frame transformation for gimbal orientation
+            # MAVLink uses FRD (Forward, Right, Down) frame while ROS uses FLU
+            # For gimbal orientation: no coordinate transformation needed, just reorder
             ros_msg.q = Quaternion(
                 x=float(mavlink_msg.q[1]),   # MAVLink x -> ROS x
-                y=-float(mavlink_msg.q[2]),  # MAVLink y -> ROS -y (coord transform)
-                z=-float(mavlink_msg.q[3]),  # MAVLink z -> ROS -z (coord transform)
+                y=float(mavlink_msg.q[2]),   # MAVLink y -> ROS y
+                z=float(mavlink_msg.q[3]),   # MAVLink z -> ROS z
                 w=float(mavlink_msg.q[0]),   # MAVLink w -> ROS w
             )
 
@@ -173,14 +174,16 @@ class MAVLinkGimbalBridge(Node):
             ros_msg.position.z = -float(mavlink_msg.z)  # Up (negative down)
 
             # Convert velocity from NED to ENU coordinate frame
-            ros_msg.velocity.x = float(mavlink_msg.vx)
-            ros_msg.velocity.y = float(mavlink_msg.vy)
-            ros_msg.velocity.z = float(mavlink_msg.vz)
+            # NED: North(vx), East(vy), Down(vz) -> ENU: East(x), North(y), Up(z)
+            ros_msg.velocity.x = float(mavlink_msg.vy)   # East
+            ros_msg.velocity.y = float(mavlink_msg.vx)   # North
+            ros_msg.velocity.z = -float(mavlink_msg.vz)  # Up (negative down)
 
             # Convert acceleration/force from NED to ENU coordinate frame
-            ros_msg.acceleration_or_force.x = float(mavlink_msg.afx)
-            ros_msg.acceleration_or_force.y = float(mavlink_msg.afy)
-            ros_msg.acceleration_or_force.z = float(mavlink_msg.afz)
+            # NED: North(afx), East(afy), Down(afz) -> ENU: East(x), North(y), Up(z)
+            ros_msg.acceleration_or_force.x = float(mavlink_msg.afy)   # East
+            ros_msg.acceleration_or_force.y = float(mavlink_msg.afx)   # North
+            ros_msg.acceleration_or_force.z = -float(mavlink_msg.afz)  # Up
 
             # Copy yaw angle and yaw rate (rotation about vertical axis)
             ros_msg.yaw = float(mavlink_msg.yaw)
