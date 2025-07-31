@@ -114,13 +114,13 @@ class MAVLinkGimbalBridge(Node):
             ros_msg.target_component = mavlink_msg.target_component
             ros_msg.flags = mavlink_msg.flags
 
-            # Convert quaternion from MAVLink [w, x, y, z] to ROS [x, y, z, w]
-            # Also apply coordinate frame transformation for gimbal orientation
+            # Convert quaternion from MAVLink [w, x, y, z] to ROS [x, y, z, w] format
+            # Note: This is only quaternion format conversion, no coordinate frame transformation
             ros_msg.q = Quaternion(
-                x=float(mavlink_msg.q[1]),   # MAVLink x -> ROS x
-                y=float(mavlink_msg.q[2]),  # MAVLink y -> ROS -y (coord transform)
-                z=float(mavlink_msg.q[3]),  # MAVLink z -> ROS -z (coord transform)
-                w=float(mavlink_msg.q[0]),   # MAVLink w -> ROS w
+                x=float(mavlink_msg.q[1]),   # MAVLink q[1] -> ROS x
+                y=float(mavlink_msg.q[2]),   # MAVLink q[2] -> ROS y  
+                z=float(mavlink_msg.q[3]),   # MAVLink q[3] -> ROS z
+                w=float(mavlink_msg.q[0]),   # MAVLink q[0] -> ROS w
             )
 
             # Copy angular velocity commands (rad/s)
@@ -172,18 +172,17 @@ class MAVLinkGimbalBridge(Node):
             ros_msg.position.y = float(mavlink_msg.x)   # North
             ros_msg.position.z = -float(mavlink_msg.z)  # Up (negative down)
 
-            # Convert velocity from NED to ENU coordinate frame  
-            # Note: MAVLink sends velocity in body frame NED, but we keep
-            # the original coordinate mapping for compatibility
-            ros_msg.velocity.x = float(mavlink_msg.vx)  # North velocity -> East velocity
-            ros_msg.velocity.y = float(mavlink_msg.vy)  # East velocity -> North velocity 
-            ros_msg.velocity.z = float(mavlink_msg.vz)  # Down velocity -> Up velocity
+            # Convert velocity values - currently direct assignment without coordinate transformation
+            # Note: For proper NED to ENU conversion, would need vx=vy, vy=vx, vz=-vz
+            ros_msg.velocity.x = float(mavlink_msg.vx)  # Direct assignment from vx
+            ros_msg.velocity.y = float(mavlink_msg.vy)  # Direct assignment from vy
+            ros_msg.velocity.z = float(mavlink_msg.vz)  # Direct assignment from vz
 
-            # Convert acceleration/force from NED to ENU coordinate frame
-            # These represent desired accelerations or force commands
-            ros_msg.acceleration_or_force.x = float(mavlink_msg.afx)  # North accel -> East accel
-            ros_msg.acceleration_or_force.y = float(mavlink_msg.afy)  # East accel -> North accel
-            ros_msg.acceleration_or_force.z = float(mavlink_msg.afz)  # Down accel -> Up accel
+            # Convert acceleration/force values - currently direct assignment  
+            # Note: For proper NED to ENU conversion, would need afx=afy, afy=afx, afz=-afz
+            ros_msg.acceleration_or_force.x = float(mavlink_msg.afx)  # Direct assignment from afx
+            ros_msg.acceleration_or_force.y = float(mavlink_msg.afy)  # Direct assignment from afy
+            ros_msg.acceleration_or_force.z = float(mavlink_msg.afz)  # Direct assignment from afz
 
             # Copy yaw angle and yaw rate (rotation about vertical axis)
             ros_msg.yaw = float(mavlink_msg.yaw)
