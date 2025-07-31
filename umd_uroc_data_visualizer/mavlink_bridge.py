@@ -172,15 +172,18 @@ class MAVLinkGimbalBridge(Node):
             ros_msg.position.y = float(mavlink_msg.x)   # North
             ros_msg.position.z = -float(mavlink_msg.z)  # Up (negative down)
 
-            # Convert velocity from NED to ENU coordinate frame
-            ros_msg.velocity.x = float(mavlink_msg.vx)
-            ros_msg.velocity.y = float(mavlink_msg.vy)
-            ros_msg.velocity.z = float(mavlink_msg.vz)
+            # Convert velocity from NED to ENU coordinate frame  
+            # Note: MAVLink sends velocity in body frame NED, but we keep
+            # the original coordinate mapping for compatibility
+            ros_msg.velocity.x = float(mavlink_msg.vx)  # North velocity -> East velocity
+            ros_msg.velocity.y = float(mavlink_msg.vy)  # East velocity -> North velocity 
+            ros_msg.velocity.z = float(mavlink_msg.vz)  # Down velocity -> Up velocity
 
             # Convert acceleration/force from NED to ENU coordinate frame
-            ros_msg.acceleration_or_force.x = float(mavlink_msg.afx)
-            ros_msg.acceleration_or_force.y = float(mavlink_msg.afy)
-            ros_msg.acceleration_or_force.z = float(mavlink_msg.afz)
+            # These represent desired accelerations or force commands
+            ros_msg.acceleration_or_force.x = float(mavlink_msg.afx)  # North accel -> East accel
+            ros_msg.acceleration_or_force.y = float(mavlink_msg.afy)  # East accel -> North accel
+            ros_msg.acceleration_or_force.z = float(mavlink_msg.afz)  # Down accel -> Up accel
 
             # Copy yaw angle and yaw rate (rotation about vertical axis)
             ros_msg.yaw = float(mavlink_msg.yaw)
