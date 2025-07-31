@@ -1,3 +1,17 @@
+# UROC Gimbal Set Attitude Configuration
+#
+# This configuration file sets parameters for visualizing commanded gimbal attitudes.
+# Used by gimbal_frame and gimbal_visualizer nodes when displaying gimbal command
+# data that represents desired/commanded gimbal orientations.
+#
+# The set_attitude topic provides commanded gimbal orientation data that reflects
+# what the gimbal system has been instructed to do, as opposed to actual status.
+
 /**/*:
   ros__parameters:
+    # Topic selection for gimbal set attitude command visualization
+    # This parameter tells both gimbal_frame and gimbal_visualizer nodes to:
+    # - Subscribe to commanded gimbal attitude messages
+    # - Display red visualization markers for commanded gimbal orientation
+    # - Use direct orientation data without vehicle motion compensation
     visualizer_topic: "/mavros/gimbal_control/device/set_attitude"

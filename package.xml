@@ -1,25 +1,40 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+
+<!-- 
+  UROC Data Visualizer Package Manifest
+  
+  This package.xml file defines the ROS2 package metadata, dependencies,
+  and build configuration for the University of Maryland UROC lab's 
+  drone data visualization system. The package provides real-time 3D
+  visualization capabilities for drone flight data, gimbal orientation,
+  and coordinate frame transforms.
+-->
+
 <package format="3">
+    <!-- Package identification -->
     <name>umd_uroc_data_visualizer</name>
     <version>0.0.0</version>
     <description>The University of Maryland's UROC lab's live drone data visualizer node.</description>
     <maintainer email="cdenihan@proton.me">cdenihan</maintainer>
     <license>MIT</license>
 
-    <depend>rclpy</depend>
-    <depend>geometry_msgs</depend>
-    <depend>nav_msgs</depend>
-    <depend>tf2_ros</depend>
-    <depend>mavros_msgs</depend>
-    <depend>visualization_msgs</depend>
+    <!-- Runtime dependencies - required for package execution -->
+    <depend>rclpy</depend>              <!-- ROS2 Python client library -->
+    <depend>geometry_msgs</depend>      <!-- Standard geometry message types -->
+    <depend>nav_msgs</depend>           <!-- Navigation message types (Path) -->
+    <depend>tf2_ros</depend>            <!-- Transform library for coordinate frames -->
+    <depend>mavros_msgs</depend>        <!-- MAVLink ROS message definitions -->
+    <depend>visualization_msgs</depend> <!-- Visualization markers for 3D display -->
 
-    <test_depend>ament_copyright</test_depend>
-    <test_depend>ament_flake8</test_depend>
-    <test_depend>ament_pep257</test_depend>
-    <test_depend>python3-pytest</test_depend>
+    <!-- Test dependencies - required only for package testing -->
+    <test_depend>ament_copyright</test_depend>  <!-- Copyright header compliance -->
+    <test_depend>ament_flake8</test_depend>     <!-- Python code style checking -->
+    <test_depend>ament_pep257</test_depend>     <!-- Python docstring compliance -->
+    <test_depend>python3-pytest</test_depend>   <!-- Python testing framework -->
 
+    <!-- Build configuration -->
     <export>
-        <build_type>ament_python</build_type>
+        <build_type>ament_python</build_type>   <!-- Pure Python package -->
     </export>
 </package>

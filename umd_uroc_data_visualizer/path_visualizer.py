@@ -144,10 +144,12 @@ class PathVisualizer(Node):
         self.drone_pose_pub.publish(pose_msg)
 
         # Add current pose to accumulated path trail
+        # Note: This creates a continuously growing path - no trimming is performed
+        # Consider adding path length limits for long flights to manage memory usage
         self.path.poses.append(pose_msg)
         self.path.header.stamp = stamp
 
-        # Publish updated path for trail visualization
+        # Publish updated path for trail visualization in tools like Foxglove
         self.path_pub.publish(self.path)
 
 
