@@ -118,8 +118,8 @@ class MAVLinkGimbalBridge(Node):
             # Also apply coordinate frame transformation for gimbal orientation
             ros_msg.q = Quaternion(
                 x=float(mavlink_msg.q[1]),   # MAVLink x -> ROS x
-                y=-float(mavlink_msg.q[2]),  # MAVLink y -> ROS -y (coord transform)
-                z=-float(mavlink_msg.q[3]),  # MAVLink z -> ROS -z (coord transform)
+                y=float(mavlink_msg.q[2]),  # MAVLink y -> ROS -y (coord transform)
+                z=float(mavlink_msg.q[3]),  # MAVLink z -> ROS -z (coord transform)
                 w=float(mavlink_msg.q[0]),   # MAVLink w -> ROS w
             )
 
@@ -132,10 +132,10 @@ class MAVLinkGimbalBridge(Node):
             self.gimbal_pub.publish(ros_msg)
 
             # Debug logging for gimbal attitude commands
-            self.get_logger().debug(
-                f"Published gimbal attitude: q=[{ros_msg.q.x:.3f}, {ros_msg.q.y:.3f}, "
-                f"{ros_msg.q.z:.3f}, {ros_msg.q.w:.3f}]"
-            )
+            # self.get_logger().debug(
+            #    f"Published gimbal attitude: q=[{ros_msg.q.x:.3f}, {ros_msg.q.y:.3f}, "
+            #    f"{ros_msg.q.z:.3f}, {ros_msg.q.w:.3f}]"
+            #)
 
         except Exception as e:
             self.get_logger().error(f"Error processing gimbal message: {e}")

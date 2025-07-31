@@ -30,7 +30,6 @@ def generate_launch_description():
     # Get package configuration directory for parameter files
     config_dir = get_package_share_directory("umd_uroc_data_visualizer")
     attitude_status_config = config_dir + "/config/attitude_status.yaml"
-    set_attitude_config = config_dir + "/config/set_attitude.yaml"
     mavlink_bridge_config = config_dir + "/config/mavlink_bridge.yaml"
 
     return LaunchDescription(
@@ -47,6 +46,7 @@ def generate_launch_description():
                 executable="gimbal_frame",
                 name="gimbal_frame",
                 output="screen",
+                parameters=[attitude_status_config],
             ),
 
             # Flight path visualization - creates trail showing drone movement
@@ -66,16 +66,7 @@ def generate_launch_description():
                 parameters=[attitude_status_config],
             ),
 
-            # Gimbal set attitude visualization (red arrows showing commanded gimbal state)
-            Node(
-                package="umd_uroc_data_visualizer",
-                executable="gimbal_visualizer",
-                name="gimbal_visualizer_set_attitude",
-                output="screen",
-                parameters=[set_attitude_config],
-            ),
-
-            # Velocity vector visualization (green arrows showing drone velocity direction)
+           # Velocity vector visualization (green arrows showing drone velocity direction)
             Node(
                 package="umd_uroc_data_visualizer",
                 executable="velocity_vector_visualizer",

@@ -1,0 +1,29 @@
+# Top-most EditorConfig file
+root = true
+
+# Global settings for all files
+[*]
+charset = utf-8
+end_of_line = lf
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# Python-specific settings
+[*.py]
+indent_style = space
+indent_size = 4
+max_line_length = 80
+
+# Go files use tabs (gofmt standard)
+[*.go]
+indent_style = tab
+
+# Makefile recipes require tabs
+[Makefile]
+indent_style = tab
+
+# Most other languages use 2-space indentation and 100-char line length
+[*.{c,cc,cpp,h,hpp,java,js,jsx,ts,tsx,css,scss,html,xml,json,yaml,yml,swift,rb,scala,sh}]
+indent_style = space
+indent_size = 2
+max_line_length = 100

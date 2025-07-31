@@ -23,7 +23,7 @@ from .qos_profile import BEST_EFFORT_QOS
 package_share_directory = get_package_share_directory("umd_uroc_data_visualizer")
 load_dotenv(os.path.join(package_share_directory, ".env"))
 # Refresh rate for velocity vector visualization updates (Hz)
-REFRESH_RATE_HZ = float(os.getenv("REFRESH_RATE_HZ"))
+REFRESH_RATE_HZ = float(os.getenv("REFRESH_RATE_HZ", 0.1))
 
 
 class VelocityVectorVisualizer(Node):

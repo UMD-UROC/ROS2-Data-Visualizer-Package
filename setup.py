@@ -15,7 +15,7 @@ from setuptools import find_packages, setup
 package_name = "umd_uroc_data_visualizer"
 
 setup(
-    name=package_name,
+    name="umd-uroc-data-visualizer",
     version="0.0.0",
     packages=find_packages(exclude=["test"]),
     data_files=[
