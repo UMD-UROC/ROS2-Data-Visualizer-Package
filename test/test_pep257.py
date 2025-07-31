@@ -12,6 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+PEP 257 docstring compliance test for UROC data visualizer package.
+
+This test checks that all Python modules, classes, and functions in the
+package have proper docstrings that comply with PEP 257 documentation
+standards. This ensures code maintainability and API documentation quality.
+"""
+
 from ament_pep257.main import main
 import pytest
 
@@ -19,5 +27,18 @@ import pytest
 @pytest.mark.linter
 @pytest.mark.pep257
 def test_pep257():
+    """
+    Test for Python docstring compliance using PEP 257 standards.
+    
+    Runs the pep257 tool to verify that all Python modules, classes,
+    and functions have appropriate docstrings following the conventions
+    outlined in PEP 257. This helps maintain code documentation quality
+    and ensures consistent API documentation.
+    
+    Returns
+    -------
+    None
+        Asserts that no docstring violations are found
+    """
     rc = main(argv=['.', 'test'])
     assert rc == 0, 'Found code style errors / warnings'
