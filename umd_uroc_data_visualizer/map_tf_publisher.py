@@ -40,7 +40,8 @@ class MapTFPublisher(Node):
         self.br = TransformBroadcaster(self)
         
         self.logger.info(f"Map TF publisher initialized (debug={'enabled' if debug else 'disabled'})")
-        self.logger.info("Publishing map->base_link transforms from MAVROS pose data")
+        if debug:
+            self.logger.info("Publishing map->base_link transforms from MAVROS pose data")
 
     # ---------- callbacks --------------------------------------------------
 

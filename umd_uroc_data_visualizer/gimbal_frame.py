@@ -88,8 +88,9 @@ class GimbalFrame(Node):
         self.create_timer(1.0 / REFRESH_RATE_HZ, self.publish_loop)
         
         self.logger.info(f"Gimbal Frame publisher initialized (debug={'enabled' if debug else 'disabled'})")
-        self.logger.info(f"Mode: {self.mode}, Topic: {topic}")
-        self.logger.info(f"Publishing gimbal_frame transforms at {REFRESH_RATE_HZ} Hz")
+        if debug:
+            self.logger.info(f"Mode: {self.mode}, Topic: {topic}")
+            self.logger.info(f"Publishing gimbal_frame transforms at {REFRESH_RATE_HZ} Hz")
 
     def ned_to_flu_quat(self, q_enu):
         """

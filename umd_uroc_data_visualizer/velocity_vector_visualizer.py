@@ -97,7 +97,8 @@ class VelocityVectorVisualizer(Node):
         self.timer = self.create_timer(1.0 / REFRESH_RATE_HZ, self.publish_loop)
         
         self.logger.info(f"Velocity vector visualizer initialized (debug={'enabled' if debug else 'disabled'})")
-        self.logger.info(f"Publishing at {REFRESH_RATE_HZ} Hz")
+        if debug:
+            self.logger.info(f"Publishing at {REFRESH_RATE_HZ} Hz")
 
     def mavV_to_rosV(self, mavV):
         """

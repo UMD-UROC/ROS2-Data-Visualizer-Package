@@ -51,6 +51,10 @@ class NodeShutdownHandler:
     def _shutdown(self):
         """Perform graceful shutdown."""
         try:
+            # Signal any shutdown events first (for mavlink_bridge)
+            if hasattr(self.node, 'shutdown_event'):
+                self.node.shutdown_event.set()
+            
             # Stop background threads
             for thread in self.background_threads:
                 if thread.is_alive():

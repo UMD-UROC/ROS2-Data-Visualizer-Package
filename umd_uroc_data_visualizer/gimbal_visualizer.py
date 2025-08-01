@@ -116,7 +116,8 @@ class GimbalVisualizer(Node):
         self.timer = self.create_timer(1.0 / REFRESH_RATE_HZ, self.publish_loop)
         
         self.logger.info(f"Gimbal visualizer initialized (debug={'enabled' if debug else 'disabled'})")
-        self.logger.info(f"Visualizing {self.visualizer_topic} as {self.marker_color} arrows at {REFRESH_RATE_HZ} Hz")
+        if debug:
+            self.logger.info(f"Visualizing {self.visualizer_topic} as {self.marker_color} arrows at {REFRESH_RATE_HZ} Hz")
 
     def publish_loop(self):
         """

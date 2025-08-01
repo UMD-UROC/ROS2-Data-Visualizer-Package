@@ -28,6 +28,9 @@ class MAVLinkGimbalBridge(Node):
         self.gimbal_message_count = 0
         self.position_message_count = 0
         self.error_count = 0
+        
+        # Thread control for graceful shutdown
+        self.shutdown_event = threading.Event()
 
         # Declare configuration parameters with defaults
         self.declare_parameter("mavlink_connection", "udp:localhost:14445")
@@ -71,7 +74,8 @@ class MAVLinkGimbalBridge(Node):
         self.shutdown_handler = NodeShutdownHandler(self, [self.mavlink_thread])
 
         self.logger.info(f"MAVLink Bridge started (debug={'enabled' if debug else 'disabled'})")
-        self.logger.info(f"System ID: {self.system_id}, Component ID: {self.component_id}")
+        if debug:
+            self.logger.info(f"System ID: {self.system_id}, Component ID: {self.component_id}")
 
     def mavlink_listener(self):  # noqa: C901
         """
@@ -88,10 +92,10 @@ class MAVLinkGimbalBridge(Node):
         
         self.logger.info("MAVLink listener thread started")
         
-        while rclpy.ok():
+        while rclpy.ok() and not self.shutdown_event.is_set():
             try:
                 # Wait for incoming MAVLink messages with timeout
-                msg = self.mavlink_connection_obj.recv_match(blocking=True, timeout=1.0)
+                msg = self.mavlink_connection_obj.recv_match(blocking=True, timeout=0.5)
                 if msg is None:
                     continue  # Timeout, try again
 

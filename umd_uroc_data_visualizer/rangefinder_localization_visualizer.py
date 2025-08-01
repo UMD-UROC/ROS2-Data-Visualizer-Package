@@ -66,7 +66,8 @@ class RangefinderLocalizationVisualizer(Node):
         self.timer = self.create_timer(1.0 / REFRESH_RATE_HZ, self.publish_markers)
         
         self.logger.info(f"Rangefinder localization visualizer initialized (debug={'enabled' if debug else 'disabled'})")
-        self.logger.info(f"Publishing at {REFRESH_RATE_HZ} Hz")
+        if debug:
+            self.logger.info(f"Publishing at {REFRESH_RATE_HZ} Hz")
 
     def publish_markers(self):
         """
