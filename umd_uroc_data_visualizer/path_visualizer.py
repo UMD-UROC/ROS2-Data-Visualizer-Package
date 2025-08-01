@@ -128,6 +128,10 @@ class PathVisualizer(Node):
         # Store header for consistent timestamping
         self.latest_header = msg.header
         
+        # Report data received for status dashboard
+        if hasattr(self, 'shutdown_handler'):
+            self.shutdown_handler.report_data_received()
+        
         # Debug-only status reporting (control center doesn't need position details)
         if self.debug:
             log_periodic_status(
@@ -211,7 +215,8 @@ def main(args=None):
     try:
         node = PathVisualizer(debug=debug)
         node.get_logger().info("UROC Foxglove 3D Path Visualization Node started")
-        rclpy.spin(node)
+        # Use the new shutdown-aware spin method
+        node.shutdown_handler.spin_with_shutdown()
     except KeyboardInterrupt:
         # Graceful shutdown is handled by NodeShutdownHandler
         pass

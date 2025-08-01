@@ -113,6 +113,10 @@ class MAVLinkGimbalBridge(Node):
                 elif mtype == "POSITION_TARGET_LOCAL_NED":
                     self.process_position_target(msg)
                     
+                # Report data received for status dashboard
+                if hasattr(self, 'shutdown_handler'):
+                    self.shutdown_handler.report_data_received()
+                    
                 # Periodic status reporting (debug only - control center doesn't need processing stats)
                 if self.debug and total_message_count % 500 == 0:
                     self.logger.debug(
@@ -122,6 +126,8 @@ class MAVLinkGimbalBridge(Node):
 
             except Exception as e:
                 self.error_count += 1
+                if hasattr(self, 'shutdown_handler'):
+                    self.shutdown_handler.report_error()
                 self.logger.error(
                     f"Error receiving or processing MAVLink message: {e}"
                 )
@@ -194,6 +200,8 @@ class MAVLinkGimbalBridge(Node):
 
         except Exception as e:
             self.error_count += 1
+            if hasattr(self, 'shutdown_handler'):
+                self.shutdown_handler.report_error()
             self.logger.error(f"Error processing gimbal message: {e}")
 
     def process_position_target(self, mavlink_msg):
@@ -260,6 +268,8 @@ class MAVLinkGimbalBridge(Node):
 
         except Exception as e:
             self.error_count += 1
+            if hasattr(self, 'shutdown_handler'):
+                self.shutdown_handler.report_error()
             self.logger.error(f"Error processing position target message: {e}")
 
 
@@ -280,7 +290,8 @@ def main(args=None):
 
     try:
         node = MAVLinkGimbalBridge(debug=debug)
-        rclpy.spin(node)
+        # Use the new shutdown-aware spin method
+        node.shutdown_handler.spin_with_shutdown()
     except KeyboardInterrupt:
         # Graceful shutdown is handled by NodeShutdownHandler
         pass

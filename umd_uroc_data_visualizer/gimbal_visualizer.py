@@ -225,7 +225,8 @@ def main(args=None):
         # Create and start the gimbal visualizer node
         node = GimbalVisualizer(debug=debug)
         node.get_logger().info("Started Gimbal Visualizer")
-        rclpy.spin(node)
+        # Use the new shutdown-aware spin method
+        node.shutdown_handler.spin_with_shutdown()
     except KeyboardInterrupt:
         # Graceful shutdown is handled by NodeShutdownHandler
         pass

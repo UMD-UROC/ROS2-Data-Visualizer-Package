@@ -66,6 +66,10 @@ class MapTFPublisher(Node):
 
         self.br.sendTransform(tf_msg)
         
+        # Report data received for status dashboard
+        if hasattr(self, 'shutdown_handler'):
+            self.shutdown_handler.report_data_received()
+        
         # Debug-only status reporting (control center doesn't need transform position details)
         if self.debug:
             log_periodic_status(
@@ -89,7 +93,8 @@ def main(args=None) -> None:
     try:
         node = MapTFPublisher(debug=debug)
         node.get_logger().info("Started map→base_link TF bridge")
-        rclpy.spin(node)
+        # Use the new shutdown-aware spin method
+        node.shutdown_handler.spin_with_shutdown()
     except KeyboardInterrupt:
         # Graceful shutdown is handled by NodeShutdownHandler
         pass

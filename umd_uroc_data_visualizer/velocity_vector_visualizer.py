@@ -141,6 +141,10 @@ class VelocityVectorVisualizer(Node):
             [target_msg.velocity.x, target_msg.velocity.y, target_msg.velocity.z]
         )
         
+        # Report data received for status dashboard
+        if hasattr(self, 'shutdown_handler'):
+            self.shutdown_handler.report_data_received()
+        
         # Debug-only status reporting (control center doesn't need velocity details)
         if self.debug:
             log_periodic_status(
@@ -171,6 +175,10 @@ class VelocityVectorVisualizer(Node):
             drone_pose_msg.pose.position.y,
             drone_pose_msg.pose.position.z,
         ]
+        
+        # Report data received for status dashboard
+        if hasattr(self, 'shutdown_handler'):
+            self.shutdown_handler.report_data_received()
         
         # Debug-only status reporting (control center doesn't need position details)
         if self.debug:
@@ -269,7 +277,8 @@ def main(args=None):
     try:
         node = VelocityVectorVisualizer(debug=debug)
         node.get_logger().info("UROC Vector Visualizer Node started")
-        rclpy.spin(node)
+        # Use the new shutdown-aware spin method
+        node.shutdown_handler.spin_with_shutdown()
     except KeyboardInterrupt:
         # Graceful shutdown is handled by NodeShutdownHandler
         pass

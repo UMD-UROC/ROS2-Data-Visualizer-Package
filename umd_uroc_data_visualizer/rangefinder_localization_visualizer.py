@@ -127,7 +127,8 @@ def main(args=None):
 
     try:
         node = RangefinderLocalizationVisualizer(debug=debug)
-        rclpy.spin(node)
+        # Use the new shutdown-aware spin method
+        node.shutdown_handler.spin_with_shutdown()
     except KeyboardInterrupt:
         # Graceful shutdown is handled by NodeShutdownHandler
         pass

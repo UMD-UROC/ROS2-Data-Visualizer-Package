@@ -153,13 +153,18 @@ class GimbalFrame(Node):
             raw.x, raw.y, raw.z, raw.w
         ])
         
-        # Periodic status reporting
-        log_periodic_status(
-            self,
-            f"Received vehicle IMU data",
-            self.imu_callback_count,
-            200  # Log every 200 messages
-        )
+        # Report data received for status dashboard
+        if hasattr(self, 'shutdown_handler'):
+            self.shutdown_handler.report_data_received()
+        
+        # Debug-only periodic status reporting (removed from normal operation)
+        if self.debug:
+            log_periodic_status(
+                self,
+                f"Received vehicle IMU data",
+                self.imu_callback_count,
+                200  # Log every 200 messages in debug mode only
+            )
 
     def gimbal_callback_set_attitude(self, msg: GimbalDeviceSetAttitude):
         self.gimbal_callback_count += 1
@@ -169,13 +174,18 @@ class GimbalFrame(Node):
             raw.x, raw.y, raw.z, raw.w
         ])
         
-        # Periodic status reporting
-        log_periodic_status(
-            self,
-            f"Received gimbal set attitude command",
-            self.gimbal_callback_count,
-            50  # Log every 50 messages
-        )
+        # Report data received for status dashboard
+        if hasattr(self, 'shutdown_handler'):
+            self.shutdown_handler.report_data_received()
+        
+        # Debug-only periodic status reporting (removed from normal operation)
+        if self.debug:
+            log_periodic_status(
+                self,
+                f"Received gimbal set attitude command",
+                self.gimbal_callback_count,
+                50  # Log every 50 messages in debug mode only
+            )
 
     def gimbal_callback_attitude_status(self, msg: GimbalDeviceAttitudeStatus):
         self.gimbal_callback_count += 1
@@ -190,13 +200,18 @@ class GimbalFrame(Node):
         r_gimbal  = R.from_quat(q_abs)
         self.gimbal_q_attitude_status = (r_vehicle.inv() * r_gimbal).as_quat()
         
-        # Periodic status reporting
-        log_periodic_status(
-            self,
-            f"Received gimbal attitude status",
-            self.gimbal_callback_count,
-            50  # Log every 50 messages
-        )
+        # Report data received for status dashboard
+        if hasattr(self, 'shutdown_handler'):
+            self.shutdown_handler.report_data_received()
+        
+        # Debug-only periodic status reporting (removed from normal operation)
+        if self.debug:
+            log_periodic_status(
+                self,
+                f"Received gimbal attitude status",
+                self.gimbal_callback_count,
+                50  # Log every 50 messages in debug mode only
+            )
 
     def publish_loop(self):
         self.publish_loop_count += 1
@@ -241,7 +256,8 @@ def main(args=None):
     
     try:
         node = GimbalFrame(debug=debug)
-        rclpy.spin(node)
+        # Use the new shutdown-aware spin method
+        node.shutdown_handler.spin_with_shutdown()
     except KeyboardInterrupt:
         # Graceful shutdown is handled by NodeShutdownHandler
         pass
