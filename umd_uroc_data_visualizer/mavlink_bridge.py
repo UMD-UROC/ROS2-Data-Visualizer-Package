@@ -148,8 +148,6 @@ class MAVLinkGimbalBridge(Node):
         except Exception as e:
             self.logger.error(f"Error closing MAVLink connection: {e}")
         
-        self.logger.info("MAVLink listener thread terminating")
-
     def process_gimbal_message(self, mavlink_msg):
         """
         Convert MAVLink gimbal attitude message to ROS2 format.
