@@ -69,7 +69,7 @@ class NodeShutdownHandler:
             return
             
         current_time = time.time()
-        uptime = int(current_time - (current_time - 300))  # Simple uptime calculation
+        uptime = int(current_time - self._start_time)  # Actual uptime calculation
         
         # Color codes for status dashboard
         GREEN = "\033[92m"  # Healthy
