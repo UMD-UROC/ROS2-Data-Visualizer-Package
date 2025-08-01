@@ -33,35 +33,42 @@ class GimbalFrame(Node):
     def __init__(self):
         super().__init__("gimbal_frame")
         self.vehicle_q = [0.0, 0.0, 0.0, 1.0]
-        self.gimbal_q_set_attitude    = [0.0, 0.0, 0.0, 1.0]
+        self.gimbal_q_set_attitude = [0.0, 0.0, 0.0, 1.0]
         self.gimbal_q_attitude_status = [0.0, 0.0, 0.0, 1.0]
 
         self.tf_broadcaster = TransformBroadcaster(self)
         self.declare_parameter("visualizer_topic", "/mavros/gimbal_control/device/attitude_status")
         topic = self.get_parameter("visualizer_topic").value
 
-        # Subscribe based on chosen topic
+        # Subscribe to gimbal attitude or set_attitude
         if topic.endswith("set_attitude"):
             self.create_subscription(
-                GimbalDeviceSetAttitude, topic,
-                self.gimbal_callback_set_attitude, BEST_EFFORT_QOS
+                GimbalDeviceSetAttitude,
+                topic,
+                self.gimbal_callback_set_attitude,
+                BEST_EFFORT_QOS
             )
         elif topic.endswith("attitude_status"):
             self.create_subscription(
-                GimbalDeviceAttitudeStatus, topic,
-                self.gimbal_callback_attitude_status, BEST_EFFORT_QOS
+                GimbalDeviceAttitudeStatus,
+                topic,
+                self.gimbal_callback_attitude_status,
+                BEST_EFFORT_QOS
             )
         else:
             self.get_logger().error(f"Unsupported visualizer_topic: {topic}")
             rclpy.shutdown()
+            return
 
-        # IMU gives us vehicle body orientation
+        # Subscribe to vehicle IMU for body orientation
         self.create_subscription(
-            Imu, "/mavros/imu/data",
-            self._vehicle_imu_cb, BEST_EFFORT_QOS
+            Imu,
+            "/mavros/imu/data",
+            self._vehicle_imu_cb,
+            BEST_EFFORT_QOS
         )
 
-        # Publish at fixed rate
+        # Timer for publishing transforms
         self.create_timer(1.0 / REFRESH_RATE_HZ, self.publish_loop)
         self.get_logger().info("Gimbal Frame Publisher Started")
 
@@ -72,16 +79,19 @@ class GimbalFrame(Node):
         - Guards against zero-norm quaternions by defaulting to identity [0,0,0,1].
         - Normalizes all valid inputs to unit length before conversion.
         """
-        # --- Hardening: guard & normalize ---
+        # Logging the raw input
         self.get_logger().info(f"received = {q_enu}")
         q = np.array(q_enu, dtype=float)
         self.get_logger().info(f"np quat {q}")
         norm = np.linalg.norm(q)
         self.get_logger().info(f"norm of quat {norm}")
-        if norm < 1e-8:
-            # Fallback to no rotation rather than crashing
+
+        # Fallback on zero or invalid quaternion
+        if norm < 1e-8 or not np.all(np.isfinite(q)):
             return np.array([0.0, 0.0, 0.0, 1.0])
-        q = norm
+
+        # Normalize quaternion
+        q_normed = q / norm
 
         # Axis-flip matrix (ENU → FLU)
         R_conv = np.array([
@@ -90,25 +100,20 @@ class GimbalFrame(Node):
             [0,  0, -1],
         ])
 
-        # Try - Except (Fixes issue if a null quaternion is received)
-        # This is mainly a dev fix to prevent crashes on startup if PX4 is not ready
         try:
             # Build rotation object from unit ENU quaternion
-            r_enu = R.from_quat(q)
+            r_enu = R.from_quat(q_normed)
             # Transform into FLU frame
             R_flu = R_conv @ r_enu.as_matrix() @ R_conv.T
-
-            self.get_logger().info(f"Received quaternion: {q_enu}")
-            self.get_logger().info(f"Norm: {norm}")
-            self.get_logger().info(f"r_enu: {r_enu}")
-            # Return FLU quaternion
+            self.get_logger().info(f"converted FLU matrix: {R_flu}")
             return R.from_matrix(R_flu).as_quat()
         except Exception as e:
             # If any error occurs, return identity quaternion
-            self.get_logger().error(f"Invalid quaternion received, returning identity quaternion, error {e}")
+            self.get_logger().error(
+                f"Invalid quaternion received, returning identity quaternion, error {e}"
+            )
             traceback.print_exc()
             return np.array([0.0, 0.0, 0.0, 1.0])
-
 
     def _vehicle_imu_cb(self, msg: Imu):
         raw = msg.orientation
@@ -125,16 +130,22 @@ class GimbalFrame(Node):
     def gimbal_callback_attitude_status(self, msg: GimbalDeviceAttitudeStatus):
         raw = msg.q
         # Absolute gimbal → FLU
-        q_abs = self.ned_to_flu_quat([raw.x, raw.y, raw.z, raw.w])
+        q_abs = self.ned_to_flu_quat([
+            raw.x, raw.y, raw.z, raw.w
+        ])
         # Compute relative: vehicle⁻¹ * gimbal
         r_vehicle = R.from_quat(self.vehicle_q)
         r_gimbal  = R.from_quat(q_abs)
         self.gimbal_q_attitude_status = (r_vehicle.inv() * r_gimbal).as_quat()
 
     def publish_loop(self):
+        topic = self.get_parameter("visualizer_topic").value
         # Choose which quaternion to broadcast
-        q = self.gimbal_q_set_attitude if self.get_parameter("visualizer_topic").value.endswith("set_attitude") \
+        q = (
+            self.gimbal_q_set_attitude
+            if topic.endswith("set_attitude")
             else self.gimbal_q_attitude_status
+        )
 
         t = TransformStamped()
         t.header.stamp = self.get_clock().now().to_msg()
