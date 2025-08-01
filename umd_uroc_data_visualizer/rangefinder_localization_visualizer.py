@@ -103,15 +103,14 @@ class RangefinderLocalizationVisualizer(Node):
         # Publish the marker
         self.marker_publisher.publish(marker)
         
-        # Periodic status reporting
-        log_periodic_status(
-            self,
-            f"Published rangefinder localization marker",
-            self.publish_count,
-            200  # Log every 200 publications
-        )
-        
+        # Debug-only status reporting (control center doesn't need marker publication details)
         if self.debug:
+            log_periodic_status(
+                self,
+                f"Published rangefinder localization marker",
+                self.publish_count,
+                200  # Log every 200 publications
+            )
             self.logger.debug("Published green sphere marker at origin")
 
 def main(args=None):

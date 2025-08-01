@@ -141,15 +141,14 @@ class VelocityVectorVisualizer(Node):
             [target_msg.velocity.x, target_msg.velocity.y, target_msg.velocity.z]
         )
         
-        # Periodic status reporting
-        log_periodic_status(
-            self,
-            f"Received velocity [{self.drone_velocity[0]:.2f}, {self.drone_velocity[1]:.2f}, {self.drone_velocity[2]:.2f}] m/s",
-            self.position_callback_count,
-            50  # Log every 50 messages
-        )
-        
+        # Debug-only status reporting (control center doesn't need velocity details)
         if self.debug:
+            log_periodic_status(
+                self,
+                f"Received velocity [{self.drone_velocity[0]:.2f}, {self.drone_velocity[1]:.2f}, {self.drone_velocity[2]:.2f}] m/s",
+                self.position_callback_count,
+                50  # Log every 50 messages
+            )
             self.logger.debug(f"Updated velocity: {self.drone_velocity}")
 
     def on_drone_pos(self, drone_pose_msg: PoseStamped):
@@ -173,15 +172,14 @@ class VelocityVectorVisualizer(Node):
             drone_pose_msg.pose.position.z,
         ]
         
-        # Periodic status reporting
-        log_periodic_status(
-            self,
-            f"Received pose at [{self.drone_pos[0]:.2f}, {self.drone_pos[1]:.2f}, {self.drone_pos[2]:.2f}]",
-            self.pose_callback_count,
-            50  # Log every 50 messages
-        )
-        
+        # Debug-only status reporting (control center doesn't need position details)
         if self.debug:
+            log_periodic_status(
+                self,
+                f"Received pose at [{self.drone_pos[0]:.2f}, {self.drone_pos[1]:.2f}, {self.drone_pos[2]:.2f}]",
+                self.pose_callback_count,
+                50  # Log every 50 messages
+            )
             self.logger.debug(f"Updated position: {self.drone_pos}")
 
     def publish_loop(self):
@@ -240,18 +238,16 @@ class VelocityVectorVisualizer(Node):
         # Publish the velocity vector marker
         self.marker_pub.publish(marker)
         
-        # Calculate velocity magnitude for status reporting
-        velocity_magnitude = (self.drone_velocity[0]**2 + self.drone_velocity[1]**2 + self.drone_velocity[2]**2)**0.5
-        
-        # Periodic status reporting
-        log_periodic_status(
-            self,
-            f"Published velocity vector (magnitude: {velocity_magnitude:.2f} m/s)",
-            self.publish_loop_count,
-            100  # Log every 100 publications
-        )
-        
+        # Debug-only status reporting (control center doesn't need velocity magnitude details)
         if self.debug:
+            # Calculate velocity magnitude for debug reporting
+            velocity_magnitude = (self.drone_velocity[0]**2 + self.drone_velocity[1]**2 + self.drone_velocity[2]**2)**0.5
+            log_periodic_status(
+                self,
+                f"Published velocity vector (magnitude: {velocity_magnitude:.2f} m/s)",
+                self.publish_loop_count,
+                100  # Log every 100 publications
+            )
             self.logger.debug(f"Published velocity arrow from {self.drone_pos} to {target_pos}")
 
 

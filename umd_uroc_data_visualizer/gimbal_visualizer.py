@@ -190,15 +190,14 @@ class GimbalVisualizer(Node):
         # Publish the marker for visualization
         self.marker_pub.publish(marker)
         
-        # Periodic status reporting
-        log_periodic_status(
-            self,
-            f"Published {self.marker_color} gimbal arrow marker",
-            self.publish_loop_count,
-            200  # Log every 200 publications
-        )
-        
+        # Debug-only status reporting (control center doesn't need marker publication details)
         if self.debug:
+            log_periodic_status(
+                self,
+                f"Published {self.marker_color} gimbal arrow marker",
+                self.publish_loop_count,
+                200  # Log every 200 publications
+            )
             self.logger.debug(f"Published {marker.ns} marker with {self.marker_color} color")
 
 def main(args=None):

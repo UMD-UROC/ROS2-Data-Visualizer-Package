@@ -222,15 +222,14 @@ class GimbalFrame(Node):
         t.transform.rotation.w = float(q[3])
         self.tf_broadcaster.sendTransform(t)
         
-        # Periodic status reporting
-        log_periodic_status(
-            self,
-            f"Published gimbal_frame transform ({self.mode} mode)",
-            self.publish_loop_count,
-            200  # Log every 200 publications
-        )
-        
+        # Debug-only status reporting (control center doesn't need transform publication details)
         if self.debug:
+            log_periodic_status(
+                self,
+                f"Published gimbal_frame transform ({self.mode} mode)",
+                self.publish_loop_count,
+                200  # Log every 200 publications
+            )
             self.logger.debug(f"Published transform: q=[{q[0]:.3f}, {q[1]:.3f}, {q[2]:.3f}, {q[3]:.3f}]")
 
 

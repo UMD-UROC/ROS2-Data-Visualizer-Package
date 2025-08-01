@@ -128,15 +128,14 @@ class PathVisualizer(Node):
         # Store header for consistent timestamping
         self.latest_header = msg.header
         
-        # Periodic status reporting
-        log_periodic_status(
-            self, 
-            f"Received pose at position [{self.drone_pos[0]:.2f}, {self.drone_pos[1]:.2f}, {self.drone_pos[2]:.2f}]",
-            self.pose_callback_count,
-            50  # Log every 50 messages
-        )
-        
+        # Debug-only status reporting (control center doesn't need position details)
         if self.debug:
+            log_periodic_status(
+                self, 
+                f"Received pose at position [{self.drone_pos[0]:.2f}, {self.drone_pos[1]:.2f}, {self.drone_pos[2]:.2f}]",
+                self.pose_callback_count,
+                50  # Log every 50 messages
+            )
             self.logger.debug(f"Updated pose: pos={self.drone_pos}, quat={self.drone_q}")
 
     def publish_loop(self):
@@ -183,15 +182,14 @@ class PathVisualizer(Node):
         # Publish updated path for trail visualization in tools like Foxglove
         self.path_pub.publish(self.path)
         
-        # Periodic status reporting
-        log_periodic_status(
-            self,
-            f"Published pose and path (path length: {len(self.path.poses)} points)",
-            self.publish_loop_count,
-            100  # Log every 100 publications
-        )
-        
+        # Debug-only status reporting (control center doesn't need path length details)
         if self.debug:
+            log_periodic_status(
+                self,
+                f"Published pose and path (path length: {len(self.path.poses)} points)",
+                self.publish_loop_count,
+                100  # Log every 100 publications
+            )
             self.logger.debug(f"Published pose at [{self.drone_pos[0]:.2f}, {self.drone_pos[1]:.2f}, {self.drone_pos[2]:.2f}]")
 
 

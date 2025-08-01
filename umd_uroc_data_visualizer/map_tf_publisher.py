@@ -66,15 +66,14 @@ class MapTFPublisher(Node):
 
         self.br.sendTransform(tf_msg)
         
-        # Periodic status reporting
-        log_periodic_status(
-            self,
-            f"Published map->base_link transform at position [{msg.pose.position.x:.2f}, {msg.pose.position.y:.2f}, {msg.pose.position.z:.2f}]",
-            self.pose_callback_count,
-            100  # Log every 100 transforms
-        )
-        
+        # Debug-only status reporting (control center doesn't need transform position details)
         if self.debug:
+            log_periodic_status(
+                self,
+                f"Published map->base_link transform at position [{msg.pose.position.x:.2f}, {msg.pose.position.y:.2f}, {msg.pose.position.z:.2f}]",
+                self.pose_callback_count,
+                100  # Log every 100 transforms
+            )
             self.logger.debug(f"Published transform: pos=[{msg.pose.position.x:.2f}, {msg.pose.position.y:.2f}, {msg.pose.position.z:.2f}]")
 
 

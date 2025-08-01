@@ -31,6 +31,7 @@ class MAVLinkGimbalBridge(Node):
         
         # Thread control for graceful shutdown
         self.shutdown_event = threading.Event()
+        self.mavlink_connection_obj = None
 
         # Declare configuration parameters with defaults
         self.declare_parameter("mavlink_connection", "udp:localhost:14445")
@@ -59,7 +60,8 @@ class MAVLinkGimbalBridge(Node):
                 source_system=self.system_id,
                 source_component=self.component_id,
             )
-            self.logger.info(f"Connected to MAVLink on {self.mavlink_connection}")
+            if debug:
+                self.logger.info(f"Connected to MAVLink on {self.mavlink_connection}")
         except Exception as e:
             self.logger.error(f"Failed to connect to MAVLink: {e}")
             raise
@@ -73,8 +75,9 @@ class MAVLinkGimbalBridge(Node):
         # Setup graceful shutdown handling (include the background thread)
         self.shutdown_handler = NodeShutdownHandler(self, [self.mavlink_thread])
 
-        self.logger.info(f"MAVLink Bridge started (debug={'enabled' if debug else 'disabled'})")
+        self.logger.info(f"MAVLink Bridge initialized (debug={'enabled' if debug else 'disabled'})")
         if debug:
+            self.logger.info(f"Connection: {self.mavlink_connection}")
             self.logger.info(f"System ID: {self.system_id}, Component ID: {self.component_id}")
 
     def mavlink_listener(self):  # noqa: C901
@@ -110,9 +113,9 @@ class MAVLinkGimbalBridge(Node):
                 elif mtype == "POSITION_TARGET_LOCAL_NED":
                     self.process_position_target(msg)
                     
-                # Periodic status reporting
-                if total_message_count % 500 == 0:
-                    self.logger.info(
+                # Periodic status reporting (debug only - control center doesn't need processing stats)
+                if self.debug and total_message_count % 500 == 0:
+                    self.logger.debug(
                         f"Processed {total_message_count} MAVLink messages "
                         f"(gimbal: {self.gimbal_message_count}, position: {self.position_message_count}, errors: {self.error_count})"
                     )
@@ -123,6 +126,21 @@ class MAVLinkGimbalBridge(Node):
                     f"Error receiving or processing MAVLink message: {e}"
                 )
                 continue
+        
+        self.logger.info("MAVLink listener thread terminating")
+
+    def cleanup_connection(self):
+        """Clean up the MAVLink connection to ensure proper shutdown."""
+        try:
+            if self.mavlink_connection_obj is not None:
+                # Close the connection to unblock any recv_match calls
+                if hasattr(self.mavlink_connection_obj, 'close'):
+                    self.mavlink_connection_obj.close()
+                elif hasattr(self.mavlink_connection_obj, 'connection') and hasattr(self.mavlink_connection_obj.connection, 'close'):
+                    self.mavlink_connection_obj.connection.close()
+                self.logger.info("MAVLink connection closed")
+        except Exception as e:
+            self.logger.error(f"Error closing MAVLink connection: {e}")
         
         self.logger.info("MAVLink listener thread terminating")
 

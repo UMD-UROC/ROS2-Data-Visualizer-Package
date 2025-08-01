@@ -55,6 +55,10 @@ class NodeShutdownHandler:
             if hasattr(self.node, 'shutdown_event'):
                 self.node.shutdown_event.set()
             
+            # Special cleanup for mavlink_bridge
+            if hasattr(self.node, 'cleanup_connection'):
+                self.node.cleanup_connection()
+            
             # Stop background threads
             for thread in self.background_threads:
                 if thread.is_alive():
