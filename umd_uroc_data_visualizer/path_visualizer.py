@@ -22,7 +22,7 @@ from .qos_profile import BEST_EFFORT_QOS
 package_share_directory = get_package_share_directory("umd_uroc_data_visualizer")
 load_dotenv(os.path.join(package_share_directory, ".env"))
 # Refresh rate for path visualization updates (Hz)
-REFRESH_RATE_HZ = float(os.getenv("REFRESH_RATE_HZ", 0.1))
+REFRESH_RATE_HZ = float(os.getenv("REFRESH_RATE_HZ", 10.0))
 
 
 class PathVisualizer(Node):
@@ -77,7 +77,7 @@ class PathVisualizer(Node):
         )
 
         # Timer for periodic pose and path publication
-        self.timer = self.create_timer(REFRESH_RATE_HZ, self.publish_loop)
+        self.timer = self.create_timer(1.0 / REFRESH_RATE_HZ, self.publish_loop)
 
     def mavros_pose_callback(self, msg: PoseStamped):
         """

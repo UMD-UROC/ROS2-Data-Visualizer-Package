@@ -12,7 +12,7 @@ from visualization_msgs.msg import Marker
 package_share_directory = get_package_share_directory("umd_uroc_data_visualizer")
 load_dotenv(os.path.join(package_share_directory, ".env"))
 # Refresh rate for transform publishing (Hz) - controls how often gimbal transforms are updated
-REFRESH_RATE_HZ = float(os.getenv("REFRESH_RATE_HZ", 0.1))
+REFRESH_RATE_HZ = float(os.getenv("REFRESH_RATE_HZ", 10.0))
 
 class RangefinderLocalizationVisualizer(Node):
     """
