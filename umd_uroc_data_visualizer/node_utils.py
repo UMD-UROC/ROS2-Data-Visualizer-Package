@@ -60,9 +60,8 @@ class NodeShutdownHandler:
             self.shutdown_requested = True
             self.node.get_logger().info(f"Received signal {signum}, initiating graceful shutdown...")
             
-            # If we're spinning, this will break the spin loop
-            if self._spinning:
-                rclpy.shutdown()
+            # Just set the flag - don't call rclpy.shutdown() from signal handler
+            # The spin loop will detect this and exit properly
     
     def _status_heartbeat(self):
         """Provide periodic status updates for control center dashboard."""
@@ -115,9 +114,12 @@ class NodeShutdownHandler:
             while rclpy.ok() and not self.shutdown_requested:
                 rclpy.spin_once(self.node, timeout_sec=0.1)
         except KeyboardInterrupt:
-            pass  # Handle gracefully
+            self.shutdown_requested = True
         finally:
             self._spinning = False
+            # Only call rclpy.shutdown() here if it hasn't been called already
+            if rclpy.ok():
+                rclpy.shutdown()
             self._shutdown()
     
     def _shutdown(self):
@@ -140,13 +142,15 @@ class NodeShutdownHandler:
                     if thread.is_alive():
                         self.node.get_logger().warn(f"Background thread {thread.name} did not stop gracefully")
             
+            # Destroy status timer before destroying node
+            if hasattr(self, '_status_timer'):
+                self._status_timer.destroy()
+            
             # Destroy node
             self.node.get_logger().info("Shutting down node...")
             self.node.destroy_node()
             
-            # Shutdown ROS2 if still running
-            if rclpy.ok():
-                rclpy.shutdown()
+            # Don't call rclpy.shutdown() here since it's already called in spin_with_shutdown
                 
         except Exception as e:
             self.node.get_logger().error(f"Error during shutdown: {e}")
