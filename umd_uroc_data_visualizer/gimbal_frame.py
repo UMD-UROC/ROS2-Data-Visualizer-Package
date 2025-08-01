@@ -22,6 +22,8 @@ from mavros_msgs.msg import GimbalDeviceAttitudeStatus, GimbalDeviceSetAttitude
 from scipy.spatial.transform import Rotation as R
 import traceback
 
+from .node_utils import NodeShutdownHandler, setup_node_logging, log_periodic_status
+
 # Load refresh rate from .env
 package_share = get_package_share_directory("umd_uroc_data_visualizer")
 load_dotenv(os.path.join(package_share, ".env"))
@@ -30,8 +32,21 @@ REFRESH_RATE_HZ = float(os.getenv("REFRESH_RATE_HZ", 10.0))
 class GimbalFrame(Node):
     """ROS2 node that broadcasts the gimbal_frame relative to base_link."""
 
-    def __init__(self):
+    def __init__(self, debug: bool = False):
         super().__init__("gimbal_frame")
+        
+        # Setup logging
+        self.logger = setup_node_logging(self, debug)
+        self.debug = debug
+        
+        # Setup graceful shutdown handling
+        self.shutdown_handler = NodeShutdownHandler(self)
+        
+        # Initialize counters for periodic status reporting
+        self.imu_callback_count = 0
+        self.gimbal_callback_count = 0
+        self.publish_loop_count = 0
+        
         self.vehicle_q = [0.0, 0.0, 0.0, 1.0]
         self.gimbal_q_set_attitude = [0.0, 0.0, 0.0, 1.0]
         self.gimbal_q_attitude_status = [0.0, 0.0, 0.0, 1.0]
@@ -48,6 +63,7 @@ class GimbalFrame(Node):
                 self.gimbal_callback_set_attitude,
                 BEST_EFFORT_QOS
             )
+            self.mode = "set_attitude"
         elif topic.endswith("attitude_status"):
             self.create_subscription(
                 GimbalDeviceAttitudeStatus,
@@ -55,10 +71,10 @@ class GimbalFrame(Node):
                 self.gimbal_callback_attitude_status,
                 BEST_EFFORT_QOS
             )
+            self.mode = "attitude_status"
         else:
-            self.get_logger().error(f"Unsupported visualizer_topic: {topic}")
-            rclpy.shutdown()
-            return
+            self.logger.error(f"Unsupported visualizer_topic: {topic}")
+            raise ValueError(f"Unsupported visualizer_topic: {topic}")
 
         # Subscribe to vehicle IMU for body orientation
         self.create_subscription(
@@ -70,7 +86,10 @@ class GimbalFrame(Node):
 
         # Timer for publishing transforms
         self.create_timer(1.0 / REFRESH_RATE_HZ, self.publish_loop)
-        self.get_logger().info("Gimbal Frame Publisher Started")
+        
+        self.logger.info(f"Gimbal Frame publisher initialized (debug={'enabled' if debug else 'disabled'})")
+        self.logger.info(f"Mode: {self.mode}, Topic: {topic}")
+        self.logger.info(f"Publishing gimbal_frame transforms at {REFRESH_RATE_HZ} Hz")
 
     def ned_to_flu_quat(self, q_enu):
         """
@@ -79,15 +98,20 @@ class GimbalFrame(Node):
         - Guards against zero-norm quaternions by defaulting to identity [0,0,0,1].
         - Normalizes all valid inputs to unit length before conversion.
         """
-        # Logging the raw input
-        self.get_logger().info(f"received = {q_enu}")
+        # Debug logging for the conversion process
+        if self.debug:
+            self.logger.debug(f"Converting quaternion: {q_enu}")
+            
         q = np.array(q_enu, dtype=float)
-        self.get_logger().info(f"np quat {q}")
         norm = np.linalg.norm(q)
-        self.get_logger().info(f"norm of quat {norm}")
+        
+        if self.debug:
+            self.logger.debug(f"Quaternion norm: {norm}")
 
         # Fallback on zero or invalid quaternion
         if norm < 1e-8 or not np.all(np.isfinite(q)):
+            if self.debug:
+                self.logger.debug("Invalid quaternion, returning identity")
             return np.array([0.0, 0.0, 0.0, 1.0])
 
         # Normalize quaternion
@@ -105,29 +129,56 @@ class GimbalFrame(Node):
             r_enu = R.from_quat(q_normed)
             # Transform into FLU frame
             R_flu = R_conv @ r_enu.as_matrix() @ R_conv.T
-            self.get_logger().info(f"converted FLU matrix: {R_flu}")
-            return R.from_matrix(R_flu).as_quat()
+            result = R.from_matrix(R_flu).as_quat()
+            
+            if self.debug:
+                self.logger.debug(f"Converted to FLU quaternion: {result}")
+                
+            return result
         except Exception as e:
             # If any error occurs, return identity quaternion
-            self.get_logger().error(
+            self.logger.error(
                 f"Invalid quaternion received, returning identity quaternion, error {e}"
             )
-            traceback.print_exc()
+            if self.debug:
+                traceback.print_exc()
             return np.array([0.0, 0.0, 0.0, 1.0])
 
     def _vehicle_imu_cb(self, msg: Imu):
+        self.imu_callback_count += 1
+        
         raw = msg.orientation
         self.vehicle_q = self.ned_to_flu_quat([
             raw.x, raw.y, raw.z, raw.w
         ])
+        
+        # Periodic status reporting
+        log_periodic_status(
+            self,
+            f"Received vehicle IMU data",
+            self.imu_callback_count,
+            200  # Log every 200 messages
+        )
 
     def gimbal_callback_set_attitude(self, msg: GimbalDeviceSetAttitude):
+        self.gimbal_callback_count += 1
+        
         raw = msg.q
         self.gimbal_q_set_attitude = self.ned_to_flu_quat([
             raw.x, raw.y, raw.z, raw.w
         ])
+        
+        # Periodic status reporting
+        log_periodic_status(
+            self,
+            f"Received gimbal set attitude command",
+            self.gimbal_callback_count,
+            50  # Log every 50 messages
+        )
 
     def gimbal_callback_attitude_status(self, msg: GimbalDeviceAttitudeStatus):
+        self.gimbal_callback_count += 1
+        
         raw = msg.q
         # Absolute gimbal → FLU
         q_abs = self.ned_to_flu_quat([
@@ -137,8 +188,18 @@ class GimbalFrame(Node):
         r_vehicle = R.from_quat(self.vehicle_q)
         r_gimbal  = R.from_quat(q_abs)
         self.gimbal_q_attitude_status = (r_vehicle.inv() * r_gimbal).as_quat()
+        
+        # Periodic status reporting
+        log_periodic_status(
+            self,
+            f"Received gimbal attitude status",
+            self.gimbal_callback_count,
+            50  # Log every 50 messages
+        )
 
     def publish_loop(self):
+        self.publish_loop_count += 1
+        
         topic = self.get_parameter("visualizer_topic").value
         # Choose which quaternion to broadcast
         q = (
@@ -159,18 +220,36 @@ class GimbalFrame(Node):
         t.transform.rotation.z = float(q[2])
         t.transform.rotation.w = float(q[3])
         self.tf_broadcaster.sendTransform(t)
+        
+        # Periodic status reporting
+        log_periodic_status(
+            self,
+            f"Published gimbal_frame transform ({self.mode} mode)",
+            self.publish_loop_count,
+            200  # Log every 200 publications
+        )
+        
+        if self.debug:
+            self.logger.debug(f"Published transform: q=[{q[0]:.3f}, {q[1]:.3f}, {q[2]:.3f}, {q[3]:.3f}]")
 
 
 def main(args=None):
     rclpy.init(args=args)
-    node = GimbalFrame()
+    
+    # Check for debug flag in arguments
+    debug = '--debug' in (args or [])
+    
     try:
+        node = GimbalFrame(debug=debug)
         rclpy.spin(node)
     except KeyboardInterrupt:
+        # Graceful shutdown is handled by NodeShutdownHandler
         pass
-    node.destroy_node()
-    if rclpy.ok():
-        rclpy.shutdown()
+    except Exception as e:
+        print(f"Unexpected error in gimbal frame: {e}")
+    finally:
+        # Cleanup is handled by NodeShutdownHandler
+        pass
 
 
 if __name__ == "__main__":

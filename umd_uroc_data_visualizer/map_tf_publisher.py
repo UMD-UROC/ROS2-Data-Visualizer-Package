@@ -13,11 +13,22 @@ from rclpy.node import Node
 from tf2_ros import TransformBroadcaster
 
 from .qos_profile import BEST_EFFORT_QOS
+from .node_utils import NodeShutdownHandler, setup_node_logging, log_periodic_status
 
 
 class MapTFPublisher(Node):
-    def __init__(self) -> None:
+    def __init__(self, debug: bool = False) -> None:
         super().__init__("map_tf_publisher")
+
+        # Setup logging
+        self.logger = setup_node_logging(self, debug)
+        self.debug = debug
+        
+        # Setup graceful shutdown handling
+        self.shutdown_handler = NodeShutdownHandler(self)
+        
+        # Initialize counters for periodic status reporting
+        self.pose_callback_count = 0
 
         self.pose_sub = self.create_subscription(
             PoseStamped,
@@ -27,6 +38,9 @@ class MapTFPublisher(Node):
         )
 
         self.br = TransformBroadcaster(self)
+        
+        self.logger.info(f"Map TF publisher initialized (debug={'enabled' if debug else 'disabled'})")
+        self.logger.info("Publishing map->base_link transforms from MAVROS pose data")
 
     # ---------- callbacks --------------------------------------------------
 
@@ -38,6 +52,8 @@ class MapTFPublisher(Node):
             parent = "map"
             child  = "base_link"
         """
+        self.pose_callback_count += 1
+        
         tf_msg = TransformStamped()
         tf_msg.header = msg.header  # stamp + "map"
         tf_msg.child_frame_id = "base_link"
@@ -48,6 +64,17 @@ class MapTFPublisher(Node):
         tf_msg.transform.rotation = msg.pose.orientation
 
         self.br.sendTransform(tf_msg)
+        
+        # Periodic status reporting
+        log_periodic_status(
+            self,
+            f"Published map->base_link transform at position [{msg.pose.position.x:.2f}, {msg.pose.position.y:.2f}, {msg.pose.position.z:.2f}]",
+            self.pose_callback_count,
+            100  # Log every 100 transforms
+        )
+        
+        if self.debug:
+            self.logger.debug(f"Published transform: pos=[{msg.pose.position.x:.2f}, {msg.pose.position.y:.2f}, {msg.pose.position.z:.2f}]")
 
 
 # ---------- main -----------------------------------------------------------
@@ -55,16 +82,22 @@ class MapTFPublisher(Node):
 
 def main(args=None) -> None:
     rclpy.init(args=args)
-    node = MapTFPublisher()
-    node.get_logger().info("Started map→base_link TF bridge")
+    
+    # Check for debug flag in arguments
+    debug = '--debug' in (args or [])
+    
     try:
+        node = MapTFPublisher(debug=debug)
+        node.get_logger().info("Started map→base_link TF bridge")
         rclpy.spin(node)
     except KeyboardInterrupt:
+        # Graceful shutdown is handled by NodeShutdownHandler
         pass
+    except Exception as e:
+        print(f"Unexpected error in map TF publisher: {e}")
     finally:
-        node.destroy_node()
-        if rclpy.ok():
-            rclpy.shutdown()
+        # Cleanup is handled by NodeShutdownHandler
+        pass
 
 
 if __name__ == "__main__":

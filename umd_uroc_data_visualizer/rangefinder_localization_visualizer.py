@@ -8,6 +8,8 @@ from tf2_ros import TransformBroadcaster
 from .qos_profile import BEST_EFFORT_QOS
 from visualization_msgs.msg import Marker
 
+from .node_utils import NodeShutdownHandler, setup_node_logging, log_periodic_status
+
 # Load environment configuration from package share directory to get refresh rate
 package_share_directory = get_package_share_directory("umd_uroc_data_visualizer")
 load_dotenv(os.path.join(package_share_directory, ".env"))
@@ -39,10 +41,18 @@ class RangefinderLocalizationVisualizer(Node):
     - /drone/rangefinder/localization/marker: Markers for rangefinder localization data
     """
 
-    def __init__(self):
+    def __init__(self, debug: bool = False):
         super().__init__("rangefinder_localization_visualizer")
-        self.logger = rclpy.logging.get_logger("RangefinderLocalizationVisualizer")
-        self.logger.info("Initializing Rangefinder Localization Visualizer Node")
+        
+        # Setup logging
+        self.logger = setup_node_logging(self, debug)
+        self.debug = debug
+        
+        # Setup graceful shutdown handling
+        self.shutdown_handler = NodeShutdownHandler(self)
+        
+        # Initialize counters for periodic status reporting
+        self.publish_count = 0
 
         # Initialize transform broadcaster for publishing transforms
         self.tf_broadcaster = TransformBroadcaster(self)
@@ -54,6 +64,9 @@ class RangefinderLocalizationVisualizer(Node):
 
         # Timer to control marker publishing frequency
         self.timer = self.create_timer(1.0 / REFRESH_RATE_HZ, self.publish_markers)
+        
+        self.logger.info(f"Rangefinder localization visualizer initialized (debug={'enabled' if debug else 'disabled'})")
+        self.logger.info(f"Publishing at {REFRESH_RATE_HZ} Hz")
 
     def publish_markers(self):
         """
@@ -62,8 +75,11 @@ class RangefinderLocalizationVisualizer(Node):
         This method creates and publishes markers representing rangefinder localization
         data in 3D space. The markers are color-coded and scaled appropriately for visualization.
         """
+        self.publish_count += 1
+        
         # Create a marker message (this is a placeholder, actual implementation needed)
         marker = Marker()
+        marker.header.stamp = self.get_clock().now().to_msg()
         marker.header.frame_id = "rangefinder_frame"
         marker.type = Marker.SPHERE
         marker.action = Marker.ADD
@@ -85,7 +101,17 @@ class RangefinderLocalizationVisualizer(Node):
 
         # Publish the marker
         self.marker_publisher.publish(marker)
-        self.logger.info("Published rangefinder localization marker")
+        
+        # Periodic status reporting
+        log_periodic_status(
+            self,
+            f"Published rangefinder localization marker",
+            self.publish_count,
+            200  # Log every 200 publications
+        )
+        
+        if self.debug:
+            self.logger.debug("Published green sphere marker at origin")
 
 def main(args=None):
     """
@@ -95,16 +121,21 @@ def main(args=None):
     process incoming messages and publish markers.
     """
     rclpy.init(args=args)
-    node = RangefinderLocalizationVisualizer()
+    
+    # Check for debug flag in arguments
+    debug = '--debug' in (args or [])
 
     try:
+        node = RangefinderLocalizationVisualizer(debug=debug)
         rclpy.spin(node)
     except KeyboardInterrupt:
+        # Graceful shutdown is handled by NodeShutdownHandler
         pass
+    except Exception as e:
+        print(f"Unexpected error in rangefinder localization visualizer: {e}")
     finally:
-        node.get_logger().info("Shutting down Rangefinder Localization Visualizer Node")
-        node.destroy_node()
-        rclpy.shutdown()
+        # Cleanup is handled by NodeShutdownHandler
+        pass
 
 if __name__ == "__main__":
     main()

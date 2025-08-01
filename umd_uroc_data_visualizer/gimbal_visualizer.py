@@ -27,6 +27,7 @@ from tf2_ros import TransformBroadcaster
 from visualization_msgs.msg import Marker
 
 from .qos_profile import BEST_EFFORT_QOS
+from .node_utils import NodeShutdownHandler, setup_node_logging, log_periodic_status
 
 # Load environment configuration from package share directory
 package_share_directory = get_package_share_directory("umd_uroc_data_visualizer")
@@ -63,7 +64,7 @@ class GimbalVisualizer(Node):
     - visualizer_topic: Selects gimbal data source and visualization mode
     """
 
-    def __init__(self):
+    def __init__(self, debug: bool = False):
         """
         Initialize the GimbalVisualizer node with publishers and configuration.
 
@@ -71,6 +72,16 @@ class GimbalVisualizer(Node):
         topic and initializes the timer for periodic marker publishing.
         """
         super().__init__("gimbal_visualizer")
+
+        # Setup logging
+        self.logger = setup_node_logging(self, debug)
+        self.debug = debug
+        
+        # Setup graceful shutdown handling
+        self.shutdown_handler = NodeShutdownHandler(self)
+        
+        # Initialize counters for periodic status reporting
+        self.publish_loop_count = 0
 
         # Initialize transform broadcaster (currently unused but available for future features)
         self.tf_broadcaster = TransformBroadcaster(self)
@@ -89,18 +100,23 @@ class GimbalVisualizer(Node):
             self.marker_pub = self.create_publisher(
                 Marker, "/drone/set_attitude/gimbal/marker", 1
             )
+            self.marker_color = "red"
         elif self.visualizer_topic == "/mavros/gimbal_control/device/attitude_status":
             # Publisher for actual gimbal attitude visualization (blue arrows)
             self.marker_pub = self.create_publisher(
                 Marker, "/drone/attitude_status/gimbal/marker", 1
             )
+            self.marker_color = "blue"
         else:
             # Invalid configuration - log error and exit
-            self.get_logger().info("Unsupported Parameter!")
-            exit(1)
+            self.logger.error(f"Unsupported Parameter: {self.visualizer_topic}")
+            raise ValueError(f"Unsupported visualizer_topic: {self.visualizer_topic}")
 
         # Timer for periodic marker publishing at configured refresh rate
         self.timer = self.create_timer(1.0 / REFRESH_RATE_HZ, self.publish_loop)
+        
+        self.logger.info(f"Gimbal visualizer initialized (debug={'enabled' if debug else 'disabled'})")
+        self.logger.info(f"Visualizing {self.visualizer_topic} as {self.marker_color} arrows at {REFRESH_RATE_HZ} Hz")
 
     def publish_loop(self):
         """
@@ -122,6 +138,8 @@ class GimbalVisualizer(Node):
         -----
         Called periodically at REFRESH_RATE_HZ to maintain real-time visualization.
         """
+        self.publish_loop_count += 1
+        
         # Get current timestamp for the marker message
         stamp = self.get_clock().now().to_msg()
 
@@ -165,11 +183,22 @@ class GimbalVisualizer(Node):
 
         else:
             # Should never reach here due to constructor validation
-            self.get_logger().info("Unsupported Parameter!")
-            exit(1)
+            self.logger.error("Unsupported Parameter!")
+            return
 
         # Publish the marker for visualization
         self.marker_pub.publish(marker)
+        
+        # Periodic status reporting
+        log_periodic_status(
+            self,
+            f"Published {self.marker_color} gimbal arrow marker",
+            self.publish_loop_count,
+            200  # Log every 200 publications
+        )
+        
+        if self.debug:
+            self.logger.debug(f"Published {marker.ns} marker with {self.marker_color} color")
 
 def main(args=None):
     """
@@ -187,24 +216,24 @@ def main(args=None):
     -----
     This function serves as the console script entry point defined in setup.py.
     """
-    # Initialize ROS2 Python client library
     rclpy.init(args=args)
-
-    # Create and start the gimbal visualizer node
-    node = GimbalVisualizer()
-    node.get_logger().info("Started Gimbal Visualizer")
+    
+    # Check for debug flag in arguments
+    debug = '--debug' in (args or [])
 
     try:
-        # Run the node until shutdown is requested
+        # Create and start the gimbal visualizer node
+        node = GimbalVisualizer(debug=debug)
+        node.get_logger().info("Started Gimbal Visualizer")
         rclpy.spin(node)
     except KeyboardInterrupt:
-        # Handle Ctrl+C gracefully without error messages
+        # Graceful shutdown is handled by NodeShutdownHandler
         pass
+    except Exception as e:
+        print(f"Unexpected error in gimbal visualizer: {e}")
     finally:
-        # Cleanup: destroy node and shutdown ROS2 if still active
-        node.destroy_node()
-        if rclpy.ok():
-            rclpy.shutdown()
+        # Cleanup is handled by NodeShutdownHandler
+        pass
 
 if __name__ == "__main__":
     main()

@@ -18,6 +18,7 @@ from rclpy.node import Node
 from visualization_msgs.msg import Marker
 
 from .qos_profile import BEST_EFFORT_QOS
+from .node_utils import NodeShutdownHandler, setup_node_logging, log_periodic_status
 
 # Load environment configuration from the package share directory
 package_share_directory = get_package_share_directory("umd_uroc_data_visualizer")
@@ -51,9 +52,21 @@ class VelocityVectorVisualizer(Node):
 
     """
 
-    def __init__(self):
+    def __init__(self, debug: bool = False):
         """Initialize the VelocityVectorVisualizer node."""
         super().__init__("vector_visualizer_node")
+
+        # Setup logging
+        self.logger = setup_node_logging(self, debug)
+        self.debug = debug
+        
+        # Setup graceful shutdown handling
+        self.shutdown_handler = NodeShutdownHandler(self)
+        
+        # Initialize counters for periodic status reporting
+        self.position_callback_count = 0
+        self.pose_callback_count = 0
+        self.publish_loop_count = 0
 
         # Initialize state variables for velocity and position tracking
         self.drone_velocity = [0.0, 0.0, 0.0]  # Current velocity (m/s)
@@ -82,6 +95,9 @@ class VelocityVectorVisualizer(Node):
 
         # Timer for periodic visualization updates
         self.timer = self.create_timer(1.0 / REFRESH_RATE_HZ, self.publish_loop)
+        
+        self.logger.info(f"Velocity vector visualizer initialized (debug={'enabled' if debug else 'disabled'})")
+        self.logger.info(f"Publishing at {REFRESH_RATE_HZ} Hz")
 
     def mavV_to_rosV(self, mavV):
         """
@@ -117,10 +133,23 @@ class VelocityVectorVisualizer(Node):
             Position target message with velocity data
 
         """
+        self.position_callback_count += 1
+        
         # Extract velocity from position target and convert NED to ENU
         self.drone_velocity = self.mavV_to_rosV(
             [target_msg.velocity.x, target_msg.velocity.y, target_msg.velocity.z]
         )
+        
+        # Periodic status reporting
+        log_periodic_status(
+            self,
+            f"Received velocity [{self.drone_velocity[0]:.2f}, {self.drone_velocity[1]:.2f}, {self.drone_velocity[2]:.2f}] m/s",
+            self.position_callback_count,
+            50  # Log every 50 messages
+        )
+        
+        if self.debug:
+            self.logger.debug(f"Updated velocity: {self.drone_velocity}")
 
     def on_drone_pos(self, drone_pose_msg: PoseStamped):
         """
@@ -135,11 +164,24 @@ class VelocityVectorVisualizer(Node):
             Current drone pose in map frame
 
         """
+        self.pose_callback_count += 1
+        
         self.drone_pos = [
             drone_pose_msg.pose.position.x,
             drone_pose_msg.pose.position.y,
             drone_pose_msg.pose.position.z,
         ]
+        
+        # Periodic status reporting
+        log_periodic_status(
+            self,
+            f"Received pose at [{self.drone_pos[0]:.2f}, {self.drone_pos[1]:.2f}, {self.drone_pos[2]:.2f}]",
+            self.pose_callback_count,
+            50  # Log every 50 messages
+        )
+        
+        if self.debug:
+            self.logger.debug(f"Updated position: {self.drone_pos}")
 
     def publish_loop(self):
         """
@@ -149,6 +191,8 @@ class VelocityVectorVisualizer(Node):
         as a green arrow pointing from current position in the direction of motion.
         The arrow length represents velocity magnitude.
         """
+        self.publish_loop_count += 1
+        
         # Use latest message timestamp if available, otherwise current time
         if hasattr(self, "latest_header"):
             stamp = self.latest_header.stamp
@@ -194,6 +238,20 @@ class VelocityVectorVisualizer(Node):
 
         # Publish the velocity vector marker
         self.marker_pub.publish(marker)
+        
+        # Calculate velocity magnitude for status reporting
+        velocity_magnitude = (self.drone_velocity[0]**2 + self.drone_velocity[1]**2 + self.drone_velocity[2]**2)**0.5
+        
+        # Periodic status reporting
+        log_periodic_status(
+            self,
+            f"Published velocity vector (magnitude: {velocity_magnitude:.2f} m/s)",
+            self.publish_loop_count,
+            100  # Log every 100 publications
+        )
+        
+        if self.debug:
+            self.logger.debug(f"Published velocity arrow from {self.drone_pos} to {target_pos}")
 
 
 def main(args=None):
@@ -207,16 +265,22 @@ def main(args=None):
 
     """
     rclpy.init(args=args)
-    node = VelocityVectorVisualizer()
-    node.get_logger().info("UROC Vector Visualizer Node started")
+    
+    # Check for debug flag in arguments
+    debug = '--debug' in (args or [])
+    
     try:
+        node = VelocityVectorVisualizer(debug=debug)
+        node.get_logger().info("UROC Vector Visualizer Node started")
         rclpy.spin(node)
     except KeyboardInterrupt:
-        node.get_logger().info("Shutting down")
+        # Graceful shutdown is handled by NodeShutdownHandler
+        pass
+    except Exception as e:
+        print(f"Unexpected error in velocity vector visualizer: {e}")
     finally:
-        node.destroy_node()
-        if rclpy.ok():
-            rclpy.shutdown()
+        # Cleanup is handled by NodeShutdownHandler
+        pass
 
 
 if __name__ == "__main__":
