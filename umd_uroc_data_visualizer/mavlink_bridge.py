@@ -10,14 +10,28 @@ from rclpy.node import Node
 from std_msgs.msg import Header
 
 from .qos_profile import BEST_EFFORT_QOS, RELIABLE_QOS
+from .node_utils import NodeShutdownHandler, setup_node_logging, log_periodic_status
 
 
 class MAVLinkGimbalBridge(Node):
     """Bridge that converts MAVLink messages to ROS2 messages."""
 
-    def __init__(self):
+    def __init__(self, debug: bool = False):
         """Initialize the MAVLink bridge node."""
         super().__init__("mavlink_gimbal_bridge")
+
+        # Setup logging
+        self.logger = setup_node_logging(self, debug)
+        self.debug = debug
+        
+        # Initialize counters for periodic status reporting
+        self.gimbal_message_count = 0
+        self.position_message_count = 0
+        self.error_count = 0
+        
+        # Thread control for graceful shutdown
+        self.shutdown_event = threading.Event()
+        self.mavlink_connection_obj = None
 
         # Declare configuration parameters with defaults
         self.declare_parameter("mavlink_connection", "udp:localhost:14445")
@@ -46,18 +60,25 @@ class MAVLinkGimbalBridge(Node):
                 source_system=self.system_id,
                 source_component=self.component_id,
             )
-            self.get_logger().info(f"Connected to MAVLink on {self.mavlink_connection}")
+            if debug:
+                self.logger.info(f"Connected to MAVLink on {self.mavlink_connection}")
         except Exception as e:
-            self.get_logger().error(f"Failed to connect to MAVLink: {e}")
-            return
+            self.logger.error(f"Failed to connect to MAVLink: {e}")
+            raise
 
         # Start background thread for MAVLink message processing
         self.mavlink_thread = threading.Thread(
-            target=self.mavlink_listener, daemon=True
+            target=self.mavlink_listener, daemon=True, name="MAVLinkListener"
         )
         self.mavlink_thread.start()
+        
+        # Setup graceful shutdown handling (include the background thread)
+        self.shutdown_handler = NodeShutdownHandler(self, [self.mavlink_thread])
 
-        self.get_logger().info("MAVLink Bridge started")
+        self.logger.info(f"MAVLink Bridge initialized (debug={'enabled' if debug else 'disabled'})")
+        if debug:
+            self.logger.info(f"Connection: {self.mavlink_connection}")
+            self.logger.info(f"System ID: {self.system_id}, Component ID: {self.component_id}")
 
     def mavlink_listener(self):  # noqa: C901
         """
@@ -70,12 +91,18 @@ class MAVLinkGimbalBridge(Node):
         Note: C901 complexity warning suppressed as this is a message
         dispatcher that naturally has multiple conditional branches.
         """
-        while rclpy.ok():
+        total_message_count = 0
+        
+        self.logger.info("MAVLink listener thread started")
+        
+        while rclpy.ok() and not self.shutdown_event.is_set():
             try:
                 # Wait for incoming MAVLink messages with timeout
-                msg = self.mavlink_connection_obj.recv_match(blocking=True, timeout=1.0)
+                msg = self.mavlink_connection_obj.recv_match(blocking=True, timeout=0.5)
                 if msg is None:
                     continue  # Timeout, try again
+
+                total_message_count += 1
 
                 # Get message type for dispatch
                 mtype = msg.get_type()
@@ -85,13 +112,42 @@ class MAVLinkGimbalBridge(Node):
                     self.process_gimbal_message(msg)
                 elif mtype == "POSITION_TARGET_LOCAL_NED":
                     self.process_position_target(msg)
+                    
+                # Report data received for status dashboard
+                if hasattr(self, 'shutdown_handler'):
+                    self.shutdown_handler.report_data_received()
+                    
+                # Periodic status reporting (debug only - control center doesn't need processing stats)
+                if self.debug and total_message_count % 500 == 0:
+                    self.logger.debug(
+                        f"Processed {total_message_count} MAVLink messages "
+                        f"(gimbal: {self.gimbal_message_count}, position: {self.position_message_count}, errors: {self.error_count})"
+                    )
 
             except Exception as e:
-                self.get_logger().error(
+                self.error_count += 1
+                if hasattr(self, 'shutdown_handler'):
+                    self.shutdown_handler.report_error()
+                self.logger.error(
                     f"Error receiving or processing MAVLink message: {e}"
                 )
                 continue
+        
+        self.logger.info("MAVLink listener thread terminating")
 
+    def cleanup_connection(self):
+        """Clean up the MAVLink connection to ensure proper shutdown."""
+        try:
+            if self.mavlink_connection_obj is not None:
+                # Close the connection to unblock any recv_match calls
+                if hasattr(self.mavlink_connection_obj, 'close'):
+                    self.mavlink_connection_obj.close()
+                elif hasattr(self.mavlink_connection_obj, 'connection') and hasattr(self.mavlink_connection_obj.connection, 'close'):
+                    self.mavlink_connection_obj.connection.close()
+                self.logger.info("MAVLink connection closed")
+        except Exception as e:
+            self.logger.error(f"Error closing MAVLink connection: {e}")
+        
     def process_gimbal_message(self, mavlink_msg):
         """
         Convert MAVLink gimbal attitude message to ROS2 format.
@@ -107,6 +163,8 @@ class MAVLinkGimbalBridge(Node):
 
         """
         try:
+            self.gimbal_message_count += 1
+            
             ros_msg = GimbalDeviceSetAttitude()
 
             # Copy target identification and control flags
@@ -132,13 +190,17 @@ class MAVLinkGimbalBridge(Node):
             self.gimbal_pub.publish(ros_msg)
 
             # Debug logging for gimbal attitude commands
-            # self.get_logger().debug(
-            #    f"Published gimbal attitude: q=[{ros_msg.q.x:.3f}, {ros_msg.q.y:.3f}, "
-            #    f"{ros_msg.q.z:.3f}, {ros_msg.q.w:.3f}]"
-            #)
+            if self.debug:
+                self.logger.debug(
+                    f"Published gimbal attitude: q=[{ros_msg.q.x:.3f}, {ros_msg.q.y:.3f}, "
+                    f"{ros_msg.q.z:.3f}, {ros_msg.q.w:.3f}]"
+                )
 
         except Exception as e:
-            self.get_logger().error(f"Error processing gimbal message: {e}")
+            self.error_count += 1
+            if hasattr(self, 'shutdown_handler'):
+                self.shutdown_handler.report_error()
+            self.logger.error(f"Error processing gimbal message: {e}")
 
     def process_position_target(self, mavlink_msg):
         """
@@ -155,6 +217,8 @@ class MAVLinkGimbalBridge(Node):
 
         """
         try:
+            self.position_message_count += 1
+            
             ros_msg = PositionTarget()
 
             # Create header with current timestamp and map frame
@@ -192,15 +256,19 @@ class MAVLinkGimbalBridge(Node):
             self.vector_pub.publish(ros_msg)
 
             # Debug logging for position targets
-            self.get_logger().debug(
-                f"Published POSITION_TARGET_LOCAL_NED: pos=[{ros_msg.position.x:.2f}, "
-                f"{ros_msg.position.y:.2f}, {ros_msg.position.z:.2f}], "
-                f"vel=[{ros_msg.velocity.x:.2f}, {ros_msg.velocity.y:.2f}, "
-                f"{ros_msg.velocity.z:.2f}]"
-            )
+            if self.debug:
+                self.logger.debug(
+                    f"Published POSITION_TARGET_LOCAL_NED: pos=[{ros_msg.position.x:.2f}, "
+                    f"{ros_msg.position.y:.2f}, {ros_msg.position.z:.2f}], "
+                    f"vel=[{ros_msg.velocity.x:.2f}, {ros_msg.velocity.y:.2f}, "
+                    f"{ros_msg.velocity.z:.2f}]"
+                )
 
         except Exception as e:
-            self.get_logger().error(f"Error processing position target message: {e}")
+            self.error_count += 1
+            if hasattr(self, 'shutdown_handler'):
+                self.shutdown_handler.report_error()
+            self.logger.error(f"Error processing position target message: {e}")
 
 
 def main(args=None):
@@ -214,17 +282,22 @@ def main(args=None):
 
     """
     rclpy.init(args=args)
+    
+    # Check for debug flag in arguments
+    debug = '--debug' in (args or [])
 
     try:
-        node = MAVLinkGimbalBridge()
-        rclpy.spin(node)
+        node = MAVLinkGimbalBridge(debug=debug)
+        # Use the new shutdown-aware spin method
+        node.shutdown_handler.spin_with_shutdown()
     except KeyboardInterrupt:
+        # Graceful shutdown is handled by NodeShutdownHandler
         pass
+    except Exception as e:
+        print(f"Unexpected error in MAVLink bridge: {e}")
     finally:
-        if "node" in locals():
-            node.destroy_node()
-        if rclpy.ok():
-            rclpy.shutdown()
+        # Cleanup is handled by NodeShutdownHandler
+        pass
 
 
 if __name__ == "__main__":

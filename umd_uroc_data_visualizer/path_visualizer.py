@@ -17,6 +17,7 @@ from nav_msgs.msg import Path
 from rclpy.node import Node
 
 from .qos_profile import BEST_EFFORT_QOS
+from .node_utils import NodeShutdownHandler, setup_node_logging, log_periodic_status
 
 # Load environment configuration from the package share directory
 package_share_directory = get_package_share_directory("umd_uroc_data_visualizer")
@@ -52,9 +53,20 @@ class PathVisualizer(Node):
 
     """
 
-    def __init__(self):
+    def __init__(self, debug: bool = False):
         """Initialize the PathVisualizer node."""
         super().__init__("path_visualizer_node")
+
+        # Setup logging
+        self.logger = setup_node_logging(self, debug)
+        self.debug = debug
+        
+        # Setup graceful shutdown handling
+        self.shutdown_handler = NodeShutdownHandler(self)
+        
+        # Initialize counters for periodic status reporting
+        self.pose_callback_count = 0
+        self.publish_loop_count = 0
 
         # Initialize publishers for pose and path data
         self.drone_pose_pub = self.create_publisher(PoseStamped, "/drone/pose", 1)
@@ -78,6 +90,10 @@ class PathVisualizer(Node):
 
         # Timer for periodic pose and path publication
         self.timer = self.create_timer(1.0 / REFRESH_RATE_HZ, self.publish_loop)
+        
+        self.logger.info(f"Path visualizer initialized (debug={'enabled' if debug else 'disabled'})")
+        if debug:
+            self.logger.info(f"Publishing at {REFRESH_RATE_HZ} Hz")
 
     def mavros_pose_callback(self, msg: PoseStamped):
         """
@@ -92,6 +108,8 @@ class PathVisualizer(Node):
             Pose message from MAVROS local_position topic
 
         """
+        self.pose_callback_count += 1
+        
         # Extract position from pose message
         self.drone_pos = [
             msg.pose.position.x,
@@ -109,6 +127,20 @@ class PathVisualizer(Node):
 
         # Store header for consistent timestamping
         self.latest_header = msg.header
+        
+        # Report data received for status dashboard
+        if hasattr(self, 'shutdown_handler'):
+            self.shutdown_handler.report_data_received()
+        
+        # Debug-only status reporting (control center doesn't need position details)
+        if self.debug:
+            log_periodic_status(
+                self, 
+                f"Received pose at position [{self.drone_pos[0]:.2f}, {self.drone_pos[1]:.2f}, {self.drone_pos[2]:.2f}]",
+                self.pose_callback_count,
+                50  # Log every 50 messages
+            )
+            self.logger.debug(f"Updated pose: pos={self.drone_pos}, quat={self.drone_q}")
 
     def publish_loop(self):
         """
@@ -118,6 +150,8 @@ class PathVisualizer(Node):
         for continuous trail visualization. Uses consistent timestamping
         across all published messages.
         """
+        self.publish_loop_count += 1
+        
         # Use timestamp from latest MAVROS message, or current time as fallback
         if hasattr(self, "latest_header"):
             stamp = self.latest_header.stamp
@@ -151,6 +185,16 @@ class PathVisualizer(Node):
 
         # Publish updated path for trail visualization in tools like Foxglove
         self.path_pub.publish(self.path)
+        
+        # Debug-only status reporting (control center doesn't need path length details)
+        if self.debug:
+            log_periodic_status(
+                self,
+                f"Published pose and path (path length: {len(self.path.poses)} points)",
+                self.publish_loop_count,
+                100  # Log every 100 publications
+            )
+            self.logger.debug(f"Published pose at [{self.drone_pos[0]:.2f}, {self.drone_pos[1]:.2f}, {self.drone_pos[2]:.2f}]")
 
 
 def main(args=None):
@@ -164,16 +208,23 @@ def main(args=None):
 
     """
     rclpy.init(args=args)
-    node = PathVisualizer()
-    node.get_logger().info("UROC Foxglove 3D Path Visualization Node started")
+    
+    # Check for debug flag in arguments
+    debug = '--debug' in (args or [])
+    
     try:
-        rclpy.spin(node)
+        node = PathVisualizer(debug=debug)
+        node.get_logger().info("UROC Foxglove 3D Path Visualization Node started")
+        # Use the new shutdown-aware spin method
+        node.shutdown_handler.spin_with_shutdown()
     except KeyboardInterrupt:
-        node.get_logger().info("Shutting down")
+        # Graceful shutdown is handled by NodeShutdownHandler
+        pass
+    except Exception as e:
+        print(f"Unexpected error in path visualizer: {e}")
     finally:
-        node.destroy_node()
-        if rclpy.ok():
-            rclpy.shutdown()
+        # Cleanup is handled by NodeShutdownHandler
+        pass
 
 
 if __name__ == "__main__":
