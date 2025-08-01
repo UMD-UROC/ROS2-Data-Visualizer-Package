@@ -20,6 +20,7 @@ from tf2_ros import TransformBroadcaster
 from .qos_profile import BEST_EFFORT_QOS
 from mavros_msgs.msg import GimbalDeviceAttitudeStatus, GimbalDeviceSetAttitude
 from scipy.spatial.transform import Rotation as R
+import traceback
 
 # Load refresh rate from .env
 package_share = get_package_share_directory("umd_uroc_data_visualizer")
@@ -72,8 +73,11 @@ class GimbalFrame(Node):
         - Normalizes all valid inputs to unit length before conversion.
         """
         # --- Hardening: guard & normalize ---
+        self.get_logger().info(f"received = {q_enu}")
         q = np.array(q_enu, dtype=float)
+        self.get_logger().info(f"np quat {q}")
         norm = np.linalg.norm(q)
+        self.get_logger().info(f"norm of quat {norm}")
         if norm < 1e-8:
             # Fallback to no rotation rather than crashing
             return np.array([0.0, 0.0, 0.0, 1.0])
@@ -94,14 +98,15 @@ class GimbalFrame(Node):
             # Transform into FLU frame
             R_flu = R_conv @ r_enu.as_matrix() @ R_conv.T
 
-            self.get_logger().debug(f"Received quaternion: {q_enu}")
-            self.get_logger().debug(f"Norm: {norm}")
-            self.get_logger().debug(f"r_enu: {r_enu}")
+            self.get_logger().info(f"Received quaternion: {q_enu}")
+            self.get_logger().info(f"Norm: {norm}")
+            self.get_logger().info(f"r_enu: {r_enu}")
             # Return FLU quaternion
             return R.from_matrix(R_flu).as_quat()
-        except:
+        except Exception as e:
             # If any error occurs, return identity quaternion
-            self.get_logger().error("Invalid quaternion received, returning identity quaternion.")
+            self.get_logger().error(f"Invalid quaternion received, returning identity quaternion, error {e}")
+            traceback.print_exc()
             return np.array([0.0, 0.0, 0.0, 1.0])
 
 
