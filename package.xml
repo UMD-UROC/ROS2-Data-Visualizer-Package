@@ -14,7 +14,7 @@
 <package format="3">
     <!-- Package identification -->
     <name>umd_uroc_data_visualizer</name>
-    <version>0.0.0</version>
+    <version>1.0.0</version>
     <description>The University of Maryland's UROC lab's live drone data visualizer node.</description>
     <maintainer email="cdenihan@proton.me">cdenihan</maintainer>
     <license>MIT</license>

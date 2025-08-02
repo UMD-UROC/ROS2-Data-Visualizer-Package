@@ -16,7 +16,7 @@ package_name = "umd_uroc_data_visualizer"
 
 setup(
     name="umd-uroc-data-visualizer",
-    version="0.0.0",
+    version="1.0.0",
     packages=find_packages(exclude=["test"]),
     data_files=[
         # Package index registration
