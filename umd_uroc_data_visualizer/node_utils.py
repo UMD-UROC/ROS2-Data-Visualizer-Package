@@ -47,6 +47,7 @@ class NodeShutdownHandler:
         
         # Status heartbeat for control center dashboard
         self._last_heartbeat = time.time()
+        self._start_time = time.time()  # Initialize start time for uptime calculation
         self._status_timer = node.create_timer(5.0, self._status_heartbeat)
         
         # Status tracking
