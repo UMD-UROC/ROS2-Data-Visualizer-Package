@@ -82,5 +82,13 @@ def generate_launch_description():
                 output="screen",
                 parameters=[mavlink_bridge_config],
             ),
+
+            # Range finder pointer visualization (red arrows showing range finder direction)
+            Node(
+                package="umd_uroc_data_visualizer",
+                executable="rangefinder_pointer_visualizer",
+                name="rangefinder_pointer_visualizer",
+                output="screen",
+            ),
         ]
     )
