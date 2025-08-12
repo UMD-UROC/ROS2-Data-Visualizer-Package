@@ -23,22 +23,22 @@ class MapTFPublisher(Node):
         # Setup logging
         self.logger = setup_node_logging(self, debug)
         self.debug = debug
-        
+
         # Setup graceful shutdown handling
         self.shutdown_handler = NodeShutdownHandler(self)
-        
+
         # Initialize counters for periodic status reporting
         self.pose_callback_count = 0
 
         self.pose_sub = self.create_subscription(
             PoseStamped,
-            "/mavros/local_position/pose",
+            "/uas4/local_position/pose",
             self.pose_callback,
             BEST_EFFORT_QOS,
         )
 
         self.br = TransformBroadcaster(self)
-        
+
         self.logger.info(f"Map TF publisher initialized (debug={'enabled' if debug else 'disabled'})")
         if debug:
             self.logger.info("Publishing map->base_link transforms from MAVROS pose data")
@@ -54,7 +54,7 @@ class MapTFPublisher(Node):
             child  = "base_link"
         """
         self.pose_callback_count += 1
-        
+
         tf_msg = TransformStamped()
         tf_msg.header = msg.header  # stamp + "map"
         tf_msg.child_frame_id = "base_link"
@@ -65,11 +65,11 @@ class MapTFPublisher(Node):
         tf_msg.transform.rotation = msg.pose.orientation
 
         self.br.sendTransform(tf_msg)
-        
+
         # Report data received for status dashboard
         if hasattr(self, 'shutdown_handler'):
             self.shutdown_handler.report_data_received()
-        
+
         # Debug-only status reporting (control center doesn't need transform position details)
         if self.debug:
             log_periodic_status(
@@ -81,15 +81,12 @@ class MapTFPublisher(Node):
             self.logger.debug(f"Published transform: pos=[{msg.pose.position.x:.2f}, {msg.pose.position.y:.2f}, {msg.pose.position.z:.2f}]")
 
 
-# ---------- main -----------------------------------------------------------
-
-
 def main(args=None) -> None:
     rclpy.init(args=args)
-    
+
     # Check for debug flag in arguments
     debug = '--debug' in (args or [])
-    
+
     try:
         node = MapTFPublisher(debug=debug)
         node.get_logger().info("Started map→base_link TF bridge")

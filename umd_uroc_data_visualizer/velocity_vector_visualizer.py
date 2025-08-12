@@ -59,10 +59,10 @@ class VelocityVectorVisualizer(Node):
         # Setup logging
         self.logger = setup_node_logging(self, debug)
         self.debug = debug
-        
+
         # Setup graceful shutdown handling
         self.shutdown_handler = NodeShutdownHandler(self)
-        
+
         # Initialize counters for periodic status reporting
         self.position_callback_count = 0
         self.pose_callback_count = 0
@@ -78,7 +78,7 @@ class VelocityVectorVisualizer(Node):
         # Note: Velocity comes from MAVLink position targets in NED frame
         self.create_subscription(
             PositionTarget,
-            "/mavros/setpoint_raw/local",
+            "/uas4/setpoint_raw/local",
             self.on_local_position,
             BEST_EFFORT_QOS,
         )
@@ -95,7 +95,7 @@ class VelocityVectorVisualizer(Node):
 
         # Timer for periodic visualization updates
         self.timer = self.create_timer(1.0 / REFRESH_RATE_HZ, self.publish_loop)
-        
+
         self.logger.info(f"Velocity vector visualizer initialized (debug={'enabled' if debug else 'disabled'})")
         if debug:
             self.logger.info(f"Publishing at {REFRESH_RATE_HZ} Hz")
@@ -135,16 +135,16 @@ class VelocityVectorVisualizer(Node):
 
         """
         self.position_callback_count += 1
-        
+
         # Extract velocity from position target and convert NED to ENU
         self.drone_velocity = self.mavV_to_rosV(
             [target_msg.velocity.x, target_msg.velocity.y, target_msg.velocity.z]
         )
-        
+
         # Report data received for status dashboard
         if hasattr(self, 'shutdown_handler'):
             self.shutdown_handler.report_data_received()
-        
+
         # Debug-only status reporting (control center doesn't need velocity details)
         if self.debug:
             log_periodic_status(
@@ -169,17 +169,17 @@ class VelocityVectorVisualizer(Node):
 
         """
         self.pose_callback_count += 1
-        
+
         self.drone_pos = [
             drone_pose_msg.pose.position.x,
             drone_pose_msg.pose.position.y,
             drone_pose_msg.pose.position.z,
         ]
-        
+
         # Report data received for status dashboard
         if hasattr(self, 'shutdown_handler'):
             self.shutdown_handler.report_data_received()
-        
+
         # Debug-only status reporting (control center doesn't need position details)
         if self.debug:
             log_periodic_status(
@@ -199,7 +199,7 @@ class VelocityVectorVisualizer(Node):
         The arrow length represents velocity magnitude.
         """
         self.publish_loop_count += 1
-        
+
         # Use latest message timestamp if available, otherwise current time
         if hasattr(self, "latest_header"):
             stamp = self.latest_header.stamp
@@ -245,7 +245,7 @@ class VelocityVectorVisualizer(Node):
 
         # Publish the velocity vector marker
         self.marker_pub.publish(marker)
-        
+
         # Debug-only status reporting (control center doesn't need velocity magnitude details)
         if self.debug:
             # Calculate velocity magnitude for debug reporting
@@ -270,10 +270,10 @@ def main(args=None):
 
     """
     rclpy.init(args=args)
-    
+
     # Check for debug flag in arguments
     debug = '--debug' in (args or [])
-    
+
     try:
         node = VelocityVectorVisualizer(debug=debug)
         node.get_logger().info("UROC Vector Visualizer Node started")

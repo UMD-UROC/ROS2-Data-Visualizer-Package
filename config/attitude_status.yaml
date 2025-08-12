@@ -1,5 +1,5 @@
 # UROC Gimbal Attitude Status Configuration
-# 
+#
 # This configuration file sets parameters for visualizing actual gimbal attitude status.
 # Used by gimbal_frame and gimbal_visualizer nodes when displaying real-time gimbal
 # orientation data from the vehicle's gimbal system.
@@ -14,4 +14,4 @@
     # - Subscribe to actual gimbal attitude status messages
     # - Display blue visualization markers for actual gimbal orientation
     # - Apply vehicle body motion compensation for relative orientation
-    visualizer_topic: "/mavros/gimbal_control/device/attitude_status"
+    visualizer_topic: "/uas4/gimbal_control/device/attitude_status"

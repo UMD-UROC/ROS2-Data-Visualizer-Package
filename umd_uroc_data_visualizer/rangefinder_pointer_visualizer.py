@@ -62,7 +62,7 @@ class RangefinderPointerVisualizer(Node):
         # Setup subscriber for rangefinder pointer data
         self.create_subscription(
             NavSatFix,
-            "/uav4/pointer_location",
+            "/uas4/pointer_location",
             self.rangefinder_pointer_location_callback,
             BEST_EFFORT_QOS,
         )

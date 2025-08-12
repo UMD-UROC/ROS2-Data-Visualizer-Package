@@ -23,12 +23,12 @@ class MAVLinkGimbalBridge(Node):
         # Setup logging
         self.logger = setup_node_logging(self, debug)
         self.debug = debug
-        
+
         # Initialize counters for periodic status reporting
         self.gimbal_message_count = 0
         self.position_message_count = 0
         self.error_count = 0
-        
+
         # Thread control for graceful shutdown
         self.shutdown_event = threading.Event()
         self.mavlink_connection_obj = None
@@ -46,11 +46,11 @@ class MAVLinkGimbalBridge(Node):
         # Initialize ROS2 publishers for converted messages
         self.gimbal_pub = self.create_publisher(
             GimbalDeviceSetAttitude,
-            "/mavros/gimbal_control/device/set_attitude",
+            "/uas4/gimbal_control/device/set_attitude",
             RELIABLE_QOS,  # Use reliable QoS for critical gimbal commands
         )
         self.vector_pub = self.create_publisher(
-            PositionTarget, "/mavros/setpoint_raw/local", BEST_EFFORT_QOS
+            PositionTarget, "/uas4/setpoint_raw/local", BEST_EFFORT_QOS
         )
 
         # Establish MAVLink connection with error handling
@@ -71,7 +71,7 @@ class MAVLinkGimbalBridge(Node):
             target=self.mavlink_listener, daemon=True, name="MAVLinkListener"
         )
         self.mavlink_thread.start()
-        
+
         # Setup graceful shutdown handling (include the background thread)
         self.shutdown_handler = NodeShutdownHandler(self, [self.mavlink_thread])
 
@@ -92,9 +92,9 @@ class MAVLinkGimbalBridge(Node):
         dispatcher that naturally has multiple conditional branches.
         """
         total_message_count = 0
-        
+
         self.logger.info("MAVLink listener thread started")
-        
+
         while rclpy.ok() and not self.shutdown_event.is_set():
             try:
                 # Wait for incoming MAVLink messages with timeout
@@ -112,11 +112,11 @@ class MAVLinkGimbalBridge(Node):
                     self.process_gimbal_message(msg)
                 elif mtype == "POSITION_TARGET_LOCAL_NED":
                     self.process_position_target(msg)
-                    
+
                 # Report data received for status dashboard
                 if hasattr(self, 'shutdown_handler'):
                     self.shutdown_handler.report_data_received()
-                    
+
                 # Periodic status reporting (debug only - control center doesn't need processing stats)
                 if self.debug and total_message_count % 500 == 0:
                     self.logger.debug(
@@ -132,7 +132,7 @@ class MAVLinkGimbalBridge(Node):
                     f"Error receiving or processing MAVLink message: {e}"
                 )
                 continue
-        
+
         self.logger.info("MAVLink listener thread terminating")
 
     def cleanup_connection(self):
@@ -147,7 +147,7 @@ class MAVLinkGimbalBridge(Node):
                 self.logger.info("MAVLink connection closed")
         except Exception as e:
             self.logger.error(f"Error closing MAVLink connection: {e}")
-        
+
     def process_gimbal_message(self, mavlink_msg):
         """
         Convert MAVLink gimbal attitude message to ROS2 format.
@@ -164,7 +164,7 @@ class MAVLinkGimbalBridge(Node):
         """
         try:
             self.gimbal_message_count += 1
-            
+
             ros_msg = GimbalDeviceSetAttitude()
 
             # Copy target identification and control flags
@@ -176,7 +176,7 @@ class MAVLinkGimbalBridge(Node):
             # Note: This is only quaternion format conversion, no coordinate frame transformation
             ros_msg.q = Quaternion(
                 x=float(mavlink_msg.q[1]),   # MAVLink q[1] -> ROS x
-                y=float(mavlink_msg.q[2]),   # MAVLink q[2] -> ROS y  
+                y=float(mavlink_msg.q[2]),   # MAVLink q[2] -> ROS y
                 z=float(mavlink_msg.q[3]),   # MAVLink q[3] -> ROS z
                 w=float(mavlink_msg.q[0]),   # MAVLink q[0] -> ROS w
             )
@@ -218,7 +218,7 @@ class MAVLinkGimbalBridge(Node):
         """
         try:
             self.position_message_count += 1
-            
+
             ros_msg = PositionTarget()
 
             # Create header with current timestamp and map frame
@@ -242,7 +242,7 @@ class MAVLinkGimbalBridge(Node):
             ros_msg.velocity.y = float(mavlink_msg.vy)  # Direct assignment from vy
             ros_msg.velocity.z = float(mavlink_msg.vz)  # Direct assignment from vz
 
-            # Convert acceleration/force values - currently direct assignment  
+            # Convert acceleration/force values - currently direct assignment
             # Note: For proper NED to ENU conversion, would need afx=afy, afy=afx, afz=-afz
             ros_msg.acceleration_or_force.x = float(mavlink_msg.afx)  # Direct assignment from afx
             ros_msg.acceleration_or_force.y = float(mavlink_msg.afy)  # Direct assignment from afy
@@ -282,7 +282,7 @@ def main(args=None):
 
     """
     rclpy.init(args=args)
-    
+
     # Check for debug flag in arguments
     debug = '--debug' in (args or [])
 
