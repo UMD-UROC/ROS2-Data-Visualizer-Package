@@ -56,25 +56,45 @@ class GimbalFrame(Node):
         topic = self.get_parameter("visualizer_topic").value
 
         # Subscribe to gimbal attitude or set_attitude (alphabetically ordered)
-        if topic.endswith("attitude_status"):
-            self.create_subscription(
-                GimbalDeviceAttitudeStatus,
-                topic,
-                self.gimbal_callback_attitude_status,
-                BEST_EFFORT_QOS
-            )
-            self.mode = "attitude_status"
-        elif topic.endswith("set_attitude"):
-            self.create_subscription(
-                GimbalDeviceSetAttitude,
-                topic,
-                self.gimbal_callback_set_attitude,
-                BEST_EFFORT_QOS
-            )
-            self.mode = "set_attitude"
-        else:
-            self.logger.error(f"Unsupported visualizer_topic: {topic}")
-            raise ValueError(f"Unsupported visualizer_topic: {topic}")
+        match topic:
+            # HITL TARGETS
+            case "/uas4/gimbal_control/device/attitude_status":
+                self.create_subscription(
+                    GimbalDeviceAttitudeStatus,
+                    topic,
+                    self.gimbal_callback_attitude_status,
+                    BEST_EFFORT_QOS
+                )
+                self.mode = "attitude_status"
+            case "/uas4/gimbal_control/device/set_attitude":
+                self.create_subscription(
+                    GimbalDeviceSetAttitude,
+                    topic,
+                    self.gimbal_callback_set_attitude,
+                    BEST_EFFORT_QOS
+                )
+                self.mode = "set_attitude"
+
+            # SITL TARGETS
+            case "/mavros/gimbal_control/device/attitude_status":
+                self.create_subscription(
+                    GimbalDeviceAttitudeStatus,
+                    topic,
+                    self.gimbal_callback_attitude_status,
+                    BEST_EFFORT_QOS
+                )
+                self.mode = "attitude_status"
+            case "/mavros/gimbal_control/device/set_attitude":
+                self.create_subscription(
+                    GimbalDeviceSetAttitude,
+                    topic,
+                    self.gimbal_callback_set_attitude,
+                    BEST_EFFORT_QOS
+                )
+                self.mode = "set_attitude"
+            case _:
+                self.logger.error(f"Unsupported visualizer_topic: {topic}")
+                raise ValueError(f"Unsupported visualizer_topic: {topic}")
 
         # Subscribe to vehicle IMU for body orientation
         self.create_subscription(

@@ -95,24 +95,41 @@ class GimbalVisualizer(Node):
         self.visualizer_topic = self.get_parameter("visualizer_topic").value
 
         # Create appropriate marker publisher based on visualizer topic configuration
-        if self.visualizer_topic == "/uas4/gimbal_control/device/set_attitude":
-            # Publisher for commanded gimbal attitude visualization (red arrows)
-            self.marker_pub = self.create_publisher(
-                Marker, "/drone/set_attitude/gimbal/marker", 1
-            )
-            self.marker_color = "red"
+        match self.visualizer_topic:
+            # HITL TARGETS
+            case "/uas4/gimbal_control/device/set_attitude":
+                # Publisher for commanded gimbal attitude visualization (red arrows)
+                self.marker_pub = self.create_publisher(
+                    Marker, "/drone/set_attitude/gimbal/marker", 1
+                )
+                self.marker_color = "red"
 
-        elif self.visualizer_topic == "/uas4/gimbal_control/device/attitude_status":
-            # Publisher for actual gimbal attitude visualization (blue arrows)
-            self.marker_pub = self.create_publisher(
-                Marker, "/drone/attitude_status/gimbal/marker", 1
-            )
-            self.marker_color = "blue"
+            case "/uas4/gimbal_control/device/attitude_status":
+                # Publisher for actual gimbal attitude visualization (blue arrows)
+                self.marker_pub = self.create_publisher(
+                    Marker, "/drone/attitude_status/gimbal/marker", 1
+                )
+                self.marker_color = "blue"
 
-        else:
-            # Invalid configuration - log error and exit
-            self.logger.error(f"Unsupported Parameter: {self.visualizer_topic}")
-            raise ValueError(f"Unsupported visualizer_topic: {self.visualizer_topic}")
+            # SITL TARGETS
+            case "/mavros/gimbal_control/device/set_attitude":
+                # Publisher for commanded gimbal attitude visualization (red arrows)
+                self.marker_pub = self.create_publisher(
+                    Marker, "/drone/set_attitude/gimbal/marker", 1
+                )
+                self.marker_color = "red"
+
+            case "/mavros/gimbal_control/device/attitude_status":
+                # Publisher for actual gimbal attitude visualization (blue arrows)
+                self.marker_pub = self.create_publisher(
+                    Marker, "/drone/attitude_status/gimbal/marker", 1
+                )
+                self.marker_color = "blue"
+
+            case _:
+                # Invalid configuration - log error and exit
+                self.logger.error(f"Unsupported Parameter: {self.visualizer_topic}")
+                raise ValueError(f"Unsupported visualizer_topic: {self.visualizer_topic}")
 
         # Timer for periodic marker publishing at configured refresh rate
         self.timer = self.create_timer(1.0 / REFRESH_RATE_HZ, self.publish_loop)
@@ -170,24 +187,41 @@ class GimbalVisualizer(Node):
         marker.color.a = 1.0
 
         # Configure marker appearance based on visualizer topic mode
-        if self.visualizer_topic == "/uas4/gimbal_control/device/set_attitude":
-            # Red arrows for commanded gimbal attitudes
-            marker.ns = "gimbal_set_attitude"
-            marker.color.r = 1.0    # Full red
-            marker.color.g = 0.0    # No green
-            marker.color.b = 0.0    # No blue
+        match self.visualizer_topic:
+            # HITL TARGETS
+            case "/uas4/gimbal_control/device/set_attitude":
+                # Red arrows for commanded gimbal attitudes
+                marker.ns = "gimbal_set_attitude"
+                marker.color.r = 1.0    # Full red
+                marker.color.g = 0.0    # No green
+                marker.color.b = 0.0    # No blue
 
-        elif self.visualizer_topic == "/uas4/gimbal_control/device/attitude_status":
-            # Blue arrows for actual gimbal status
-            marker.ns = "gimbal_attitude_status"
-            marker.color.r = 0.0    # No red
-            marker.color.g = 0.0    # No green
-            marker.color.b = 1.0    # Full blue
+            case "/uas4/gimbal_control/device/attitude_status":
+                # Blue arrows for actual gimbal status
+                marker.ns = "gimbal_attitude_status"
+                marker.color.r = 0.0    # No red
+                marker.color.g = 0.0    # No green
+                marker.color.b = 1.0    # Full blue
 
-        else:
-            # Should never reach here due to constructor validation
-            self.logger.error("Unsupported Parameter!")
-            return
+            # SITL TARGETS
+            case "/mavros/gimbal_control/device/set_attitude":
+                # Red arrows for commanded gimbal attitudes
+                marker.ns = "gimbal_set_attitude"
+                marker.color.r = 1.0    # Full red
+                marker.color.g = 0.0    # No green
+                marker.color.b = 0.0    # No blue
+
+            case "/mavros/gimbal_control/device/attitude_status":
+                # Blue arrows for actual gimbal status
+                marker.ns = "gimbal_attitude_status"
+                marker.color.r = 0.0    # No red
+                marker.color.g = 0.0    # No green
+                marker.color.b = 1.0    # Full blue
+
+            case _:
+                # Should never reach here due to constructor validation
+                self.logger.error("Unsupported Parameter!")
+                return
 
         # Publish the marker for visualization
         self.marker_pub.publish(marker)

@@ -27,6 +27,8 @@ setup(
         (os.path.join("share", package_name, "launch"), glob("launch/*.py")),
         # Configuration files for node parameters
         (os.path.join("share", package_name, "config"), glob("config/*.yaml")),
+        (os.path.join("share", package_name, "config", "sitl"), glob("config/sitl/*.yaml")),
+        (os.path.join("share", package_name, "config", "hitl"), glob("config/hitl/*.yaml")),
         # Environment configuration
         ("share/" + package_name, [".env"]),
     ],

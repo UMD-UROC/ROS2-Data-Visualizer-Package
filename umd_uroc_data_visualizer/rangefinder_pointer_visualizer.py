@@ -53,6 +53,10 @@ class RangefinderPointerVisualizer(Node):
         # Initialize counters for periodic status reporting
         self.publish_count = 0
 
+        # Declare parameter for visualizer topic
+        self.declare_parameter("visualizer_topic", "/mavros/gimbal_control/device/attitude_status")
+        self.topic = self.get_parameter("visualizer_topic").value
+
         # Initialize marker and reference position for GPS conversion
         self.marker = Marker()
         self.reference_lat = None
@@ -62,7 +66,7 @@ class RangefinderPointerVisualizer(Node):
         # Setup subscriber for rangefinder pointer data
         self.create_subscription(
             NavSatFix,
-            "/uas4/pointer_location",
+            self.topic,
             self.rangefinder_pointer_location_callback,
             BEST_EFFORT_QOS,
         )

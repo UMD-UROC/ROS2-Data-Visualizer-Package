@@ -68,6 +68,9 @@ class VelocityVectorVisualizer(Node):
         self.pose_callback_count = 0
         self.publish_loop_count = 0
 
+        # Take parameters
+        self.declare_parameter("setup", "SITL")
+
         # Initialize state variables for velocity and position tracking
         self.drone_velocity = [0.0, 0.0, 0.0]  # Current velocity (m/s)
         self.drone_pos = [0.0, 0.0, 0.0]        # Current position (m)
@@ -76,12 +79,23 @@ class VelocityVectorVisualizer(Node):
 
         # Subscribe to position target messages for velocity data
         # Note: Velocity comes from MAVLink position targets in NED frame
-        self.create_subscription(
-            PositionTarget,
-            "/uas4/setpoint_raw/local",
-            self.on_local_position,
-            BEST_EFFORT_QOS,
-        )
+        match self.get_parameter("setup").value:
+            case "SITL":
+                # SITL uses MAVROS position targets for velocity control
+                self.create_subscription(
+                    PositionTarget,
+                    "/uas4/setpoint_raw/local",
+                    self.on_local_position,
+                    BEST_EFFORT_QOS,
+                )
+            case "HITL":
+                # HITL uses UAS4 position targets for velocity control
+                self.create_subscription(
+                    PositionTarget,
+                    "mavros/setpoint_raw/local",
+                    self.on_local_position,
+                    BEST_EFFORT_QOS,
+                )
 
         # Subscribe to drone pose for current position
         self.create_subscription(

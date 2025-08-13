@@ -68,6 +68,9 @@ class PathVisualizer(Node):
         self.pose_callback_count = 0
         self.publish_loop_count = 0
 
+        self.declare_parameter("local_pose_topic", "/mavros/local_position/pose")
+        self.topic = self.get_parameter("local_pose_topic").value
+
         # Initialize publishers for pose and path data
         self.drone_pose_pub = self.create_publisher(PoseStamped, "/drone/pose", 1)
 
@@ -83,7 +86,7 @@ class PathVisualizer(Node):
         # Subscribe to MAVROS local position data (already in ENU map frame)
         self.create_subscription(
             PoseStamped,
-            "/uas4/local_position/pose",
+            self.topic,
             self.mavros_pose_callback,
             BEST_EFFORT_QOS,
         )

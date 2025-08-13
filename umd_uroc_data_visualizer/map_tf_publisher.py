@@ -30,9 +30,13 @@ class MapTFPublisher(Node):
         # Initialize counters for periodic status reporting
         self.pose_callback_count = 0
 
+        # Declare parameter for pose topic with default value
+        self.declare_parameter("local_pose_topic", "/mavros/local_position/pose")
+        self.pose_topic = self.get_parameter("local_pose_topic").value
+
         self.pose_sub = self.create_subscription(
             PoseStamped,
-            "/uas4/local_position/pose",
+            self.pose_topic,
             self.pose_callback,
             BEST_EFFORT_QOS,
         )

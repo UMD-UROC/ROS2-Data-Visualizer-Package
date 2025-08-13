@@ -1,0 +1,11 @@
+# UROC Map TF Publisher Configuration for SITL
+#
+# This configuration file sets parameters for the map TF publisher node in SITL mode.
+# The map TF publisher creates transforms from the map frame to base_link frame
+# using drone pose data from MAVROS.
+
+/**/*:
+  ros__parameters:
+    # MAVROS local position topic for SITL simulation
+    # In SITL, MAVROS uses standard topic naming conventions
+    local_pose_topic: "/mavros/local_position/pose"

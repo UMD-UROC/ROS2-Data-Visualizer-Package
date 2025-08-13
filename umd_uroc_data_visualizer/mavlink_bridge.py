@@ -37,6 +37,7 @@ class MAVLinkGimbalBridge(Node):
         self.declare_parameter("mavlink_connection", "udp:localhost:14445")
         self.declare_parameter("system_id", 1)
         self.declare_parameter("component_id", 1)
+        self.declare_parameter("setup", "SITL")
 
         # Retrieve configuration parameters
         self.mavlink_connection = self.get_parameter("mavlink_connection").value
@@ -44,14 +45,28 @@ class MAVLinkGimbalBridge(Node):
         self.component_id = self.get_parameter("component_id").value
 
         # Initialize ROS2 publishers for converted messages
-        self.gimbal_pub = self.create_publisher(
-            GimbalDeviceSetAttitude,
-            "/uas4/gimbal_control/device/set_attitude",
-            RELIABLE_QOS,  # Use reliable QoS for critical gimbal commands
-        )
-        self.vector_pub = self.create_publisher(
-            PositionTarget, "/uas4/setpoint_raw/local", BEST_EFFORT_QOS
-        )
+
+        match self.get_parameter("setup").value:
+            case "SITL":
+                self.gimbal_pub = self.create_publisher(
+                    GimbalDeviceSetAttitude,
+                    "/mavros/gimbal_control/device/set_attitude",
+                    RELIABLE_QOS,  # Use reliable QoS for critical gimbal commands
+                )
+                self.vector_pub = self.create_publisher(
+                    PositionTarget,
+                    "/mavros/setpoint_raw/local",
+                    BEST_EFFORT_QOS
+                )
+            case "HITL":
+                self.gimbal_pub = self.create_publisher(
+                    GimbalDeviceSetAttitude,
+                    "/uas4/gimbal_control/device/set_attitude",
+                    RELIABLE_QOS,  # Use reliable QoS for critical gimbal commands
+                )
+                self.vector_pub = self.create_publisher(
+                    PositionTarget, "/uas4/setpoint_raw/local", BEST_EFFORT_QOS
+                )
 
         # Establish MAVLink connection with error handling
         try:
@@ -66,7 +81,7 @@ class MAVLinkGimbalBridge(Node):
             self.logger.error(f"Failed to connect to MAVLink: {e}")
             raise
 
-        # Start background thread for MAVLink message processing
+        # Start a background thread for MAVLink message processing
         self.mavlink_thread = threading.Thread(
             target=self.mavlink_listener, daemon=True, name="MAVLinkListener"
         )
@@ -82,7 +97,7 @@ class MAVLinkGimbalBridge(Node):
 
     def mavlink_listener(self):  # noqa: C901
         """
-        Listen to MAVLink messages in background thread.
+        Listen to MAVLink messages in the background thread.
 
         Continuously monitors the MAVLink connection for incoming messages
         and dispatches them to appropriate processing functions. Runs in
@@ -108,10 +123,11 @@ class MAVLinkGimbalBridge(Node):
                 mtype = msg.get_type()
 
                 # Dispatch to appropriate handler based on message type
-                if mtype == "GIMBAL_DEVICE_SET_ATTITUDE":
-                    self.process_gimbal_message(msg)
-                elif mtype == "POSITION_TARGET_LOCAL_NED":
-                    self.process_position_target(msg)
+                match mtype:
+                    case "GIMBAL_DEVICE_SET_ATTITUDE":
+                        self.process_gimbal_message(msg)
+                    case "POSITION_TARGET_LOCAL_NED":
+                        self.process_position_target(msg)
 
                 # Report data received for status dashboard
                 if hasattr(self, 'shutdown_handler'):
@@ -140,10 +156,11 @@ class MAVLinkGimbalBridge(Node):
         try:
             if self.mavlink_connection_obj is not None:
                 # Close the connection to unblock any recv_match calls
-                if hasattr(self.mavlink_connection_obj, 'close'):
-                    self.mavlink_connection_obj.close()
-                elif hasattr(self.mavlink_connection_obj, 'connection') and hasattr(self.mavlink_connection_obj.connection, 'close'):
-                    self.mavlink_connection_obj.connection.close()
+                match True:
+                    case _ if hasattr(self.mavlink_connection_obj, 'close'):
+                        self.mavlink_connection_obj.close()
+                    case _ if hasattr(self.mavlink_connection_obj, 'connection') and hasattr(self.mavlink_connection_obj.connection, 'close'):
+                        self.mavlink_connection_obj.connection.close()
                 self.logger.info("MAVLink connection closed")
         except Exception as e:
             self.logger.error(f"Error closing MAVLink connection: {e}")

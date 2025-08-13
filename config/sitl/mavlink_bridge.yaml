@@ -15,7 +15,7 @@
     #   - "udp:localhost:14445" - UDP connection to local simulator
     #   - "tcp:192.168.1.100:5760" - TCP connection to remote system
     #   - "serial:/dev/ttyUSB0:57600" - Serial connection to hardware
-    mavlink_connection: "udp:localhost:14404"
+    mavlink_connection: "udp:localhost:14445"
 
     # System ID for MAVLink communication - identifies this system in the MAVLink network
     # Should match the system ID expected by the connected autopilot/ground station
@@ -24,3 +24,6 @@
     # Component ID for MAVLink communication - identifies this component within the system
     # Standard component IDs: 1=autopilot, 154=gimbal, 190=onboard computer
     component_id: 1
+
+    # System type (SITL / HITL)
+    system_type: "SITL"

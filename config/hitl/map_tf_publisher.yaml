@@ -1,0 +1,11 @@
+# UROC Map TF Publisher Configuration for HITL
+#
+# This configuration file sets parameters for the map TF publisher node in HITL mode.
+# The map TF publisher creates transforms from the map frame to base_link frame
+# using drone pose data from MAVROS.
+
+/**/*:
+  ros__parameters:
+    # MAVROS local position topic for HITL (Hardware In The Loop)
+    # In HITL, the system uses UAS4 namespace for topic organization
+    local_pose_topic: "/uas4/local_position/pose"
