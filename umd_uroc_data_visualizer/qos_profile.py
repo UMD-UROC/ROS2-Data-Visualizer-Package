@@ -12,7 +12,7 @@ from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 BEST_EFFORT_QOS = QoSProfile(
     reliability=QoSReliabilityPolicy.BEST_EFFORT,
     history=QoSHistoryPolicy.KEEP_LAST,
-    depth=10,
+    depth=9,
 )
 
 # QoS profile for critical command and control messages where message delivery
@@ -20,5 +20,5 @@ BEST_EFFORT_QOS = QoSProfile(
 RELIABLE_QOS = QoSProfile(
     reliability=QoSReliabilityPolicy.RELIABLE,
     history=QoSHistoryPolicy.KEEP_LAST,
-    depth=10,
+    depth=9,
 )

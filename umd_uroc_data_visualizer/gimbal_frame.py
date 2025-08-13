@@ -1,5 +1,3 @@
-# gimbal_frame.py
-
 """
 Gimbal frame transform publisher for UROC visualization system.
 
@@ -18,7 +16,7 @@ from sensor_msgs.msg import Imu
 from rclpy.node import Node
 from tf2_ros import TransformBroadcaster
 from .qos_profile import BEST_EFFORT_QOS
-from mavros_msgs.msg import GimbalDeviceAttitudeStatus, GimbalDeviceSetAttitude
+from mavros_msgs.msg import GimbalManagerSetAttitude
 from scipy.spatial.transform import Rotation as R
 import traceback
 
@@ -34,63 +32,43 @@ class GimbalFrame(Node):
 
     def __init__(self, debug: bool = False):
         super().__init__("gimbal_frame")
-        
+
         # Setup logging
         self.logger = setup_node_logging(self, debug)
         self.debug = debug
-        
+
         # Setup graceful shutdown handling
         self.shutdown_handler = NodeShutdownHandler(self)
-        
+
         # Initialize counters for periodic status reporting
         self.imu_callback_count = 0
         self.gimbal_callback_count = 0
         self.publish_loop_count = 0
-        
+
         self.vehicle_q = [0.0, 0.0, 0.0, 1.0]
         self.gimbal_q_set_attitude = [0.0, 0.0, 0.0, 1.0]
         self.gimbal_q_attitude_status = [0.0, 0.0, 0.0, 1.0]
 
         self.tf_broadcaster = TransformBroadcaster(self)
-        self.declare_parameter("visualizer_topic", "/mavros/gimbal_control/device/attitude_status")
-        topic = self.get_parameter("visualizer_topic").value
-
-        # Subscribe to gimbal attitude or set_attitude
-        if topic.endswith("set_attitude"):
-            self.create_subscription(
-                GimbalDeviceSetAttitude,
-                topic,
-                self.gimbal_callback_set_attitude,
-                BEST_EFFORT_QOS
-            )
-            self.mode = "set_attitude"
-        elif topic.endswith("attitude_status"):
-            self.create_subscription(
-                GimbalDeviceAttitudeStatus,
-                topic,
-                self.gimbal_callback_attitude_status,
-                BEST_EFFORT_QOS
-            )
-            self.mode = "attitude_status"
-        else:
-            self.logger.error(f"Unsupported visualizer_topic: {topic}")
-            raise ValueError(f"Unsupported visualizer_topic: {topic}")
+        self.create_subscription(
+            GimbalManagerSetAttitude,
+            "/uas4/gimbal_control/manager/set_attitude",
+            self.gimbal_callback_set_attitude,
+            BEST_EFFORT_QOS
+        )
 
         # Subscribe to vehicle IMU for body orientation
         self.create_subscription(
             Imu,
-            "/mavros/imu/data",
+            "/uas4/imu/data",
             self._vehicle_imu_cb,
             BEST_EFFORT_QOS
         )
 
         # Timer for publishing transforms
         self.create_timer(1.0 / REFRESH_RATE_HZ, self.publish_loop)
-        
+
         self.logger.info(f"Gimbal Frame publisher initialized (debug={'enabled' if debug else 'disabled'})")
-        if debug:
-            self.logger.info(f"Mode: {self.mode}, Topic: {topic}")
-            self.logger.info(f"Publishing gimbal_frame transforms at {REFRESH_RATE_HZ} Hz")
 
     def ned_to_flu_quat(self, q_enu):
         """
@@ -102,10 +80,10 @@ class GimbalFrame(Node):
         # Debug logging for the conversion process
         if self.debug:
             self.logger.debug(f"Converting quaternion: {q_enu}")
-            
+
         q = np.array(q_enu, dtype=float)
         norm = np.linalg.norm(q)
-        
+
         if self.debug:
             self.logger.debug(f"Quaternion norm: {norm}")
 
@@ -131,10 +109,10 @@ class GimbalFrame(Node):
             # Transform into FLU frame
             R_flu = R_conv @ r_enu.as_matrix() @ R_conv.T
             result = R.from_matrix(R_flu).as_quat()
-            
+
             if self.debug:
                 self.logger.debug(f"Converted to FLU quaternion: {result}")
-                
+
             return result
         except Exception as e:
             # If any error occurs, return identity quaternion
@@ -147,37 +125,37 @@ class GimbalFrame(Node):
 
     def _vehicle_imu_cb(self, msg: Imu):
         self.imu_callback_count += 1
-        
+
         raw = msg.orientation
         self.vehicle_q = self.ned_to_flu_quat([
             raw.x, raw.y, raw.z, raw.w
         ])
-        
+
         # Report data received for status dashboard
         if hasattr(self, 'shutdown_handler'):
             self.shutdown_handler.report_data_received()
-        
+
         # Debug-only periodic status reporting (removed from normal operation)
         if self.debug:
             log_periodic_status(
                 self,
-                f"Received vehicle IMU data",
+                "Received vehicle IMU data",
                 self.imu_callback_count,
                 200  # Log every 200 messages in debug mode only
             )
 
-    def gimbal_callback_set_attitude(self, msg: GimbalDeviceSetAttitude):
+    def gimbal_callback_set_attitude(self, msg: GimbalManagerSetAttitude):
         self.gimbal_callback_count += 1
-        
+
         raw = msg.q
         self.gimbal_q_set_attitude = self.ned_to_flu_quat([
             raw.x, raw.y, raw.z, raw.w
         ])
-        
+
         # Report data received for status dashboard
         if hasattr(self, 'shutdown_handler'):
             self.shutdown_handler.report_data_received()
-        
+
         # Debug-only periodic status reporting (removed from normal operation)
         if self.debug:
             log_periodic_status(
@@ -187,41 +165,12 @@ class GimbalFrame(Node):
                 50  # Log every 50 messages in debug mode only
             )
 
-    def gimbal_callback_attitude_status(self, msg: GimbalDeviceAttitudeStatus):
-        self.gimbal_callback_count += 1
-        
-        raw = msg.q
-        # Absolute gimbal → FLU
-        q_abs = self.ned_to_flu_quat([
-            raw.x, raw.y, raw.z, raw.w
-        ])
-        # Compute relative: vehicle⁻¹ * gimbal
-        r_vehicle = R.from_quat(self.vehicle_q)
-        r_gimbal  = R.from_quat(q_abs)
-        self.gimbal_q_attitude_status = (r_vehicle.inv() * r_gimbal).as_quat()
-        
-        # Report data received for status dashboard
-        if hasattr(self, 'shutdown_handler'):
-            self.shutdown_handler.report_data_received()
-        
-        # Debug-only periodic status reporting (removed from normal operation)
-        if self.debug:
-            log_periodic_status(
-                self,
-                f"Received gimbal attitude status",
-                self.gimbal_callback_count,
-                50  # Log every 50 messages in debug mode only
-            )
-
     def publish_loop(self):
         self.publish_loop_count += 1
-        
-        topic = self.get_parameter("visualizer_topic").value
+
         # Choose which quaternion to broadcast
         q = (
             self.gimbal_q_set_attitude
-            if topic.endswith("set_attitude")
-            else self.gimbal_q_attitude_status
         )
 
         t = TransformStamped()
@@ -236,24 +185,13 @@ class GimbalFrame(Node):
         t.transform.rotation.z = float(q[2])
         t.transform.rotation.w = float(q[3])
         self.tf_broadcaster.sendTransform(t)
-        
-        # Debug-only status reporting (control center doesn't need transform publication details)
-        if self.debug:
-            log_periodic_status(
-                self,
-                f"Published gimbal_frame transform ({self.mode} mode)",
-                self.publish_loop_count,
-                200  # Log every 200 publications
-            )
-            self.logger.debug(f"Published transform: q=[{q[0]:.3f}, {q[1]:.3f}, {q[2]:.3f}, {q[3]:.3f}]")
-
 
 def main(args=None):
     rclpy.init(args=args)
-    
+
     # Check for debug flag in arguments
     debug = '--debug' in (args or [])
-    
+
     try:
         node = GimbalFrame(debug=debug)
         # Use the new shutdown-aware spin method
@@ -270,4 +208,3 @@ def main(args=None):
 
 if __name__ == "__main__":
     main()
-

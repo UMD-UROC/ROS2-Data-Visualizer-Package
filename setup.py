@@ -52,6 +52,8 @@ setup(
             "gimbal_visualizer = umd_uroc_data_visualizer.gimbal_visualizer:main",
             # MAVLink message bridge
             "mavlink_bridge = umd_uroc_data_visualizer.mavlink_bridge:main",
+            # Range finder pointer visualization
+            "rangefinder_pointer_visualizer = umd_uroc_data_visualizer.rangefinder_pointer_visualizer:main",
         ],
     },
 )

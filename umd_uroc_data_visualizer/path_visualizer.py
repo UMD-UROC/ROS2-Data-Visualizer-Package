@@ -60,10 +60,10 @@ class PathVisualizer(Node):
         # Setup logging
         self.logger = setup_node_logging(self, debug)
         self.debug = debug
-        
+
         # Setup graceful shutdown handling
         self.shutdown_handler = NodeShutdownHandler(self)
-        
+
         # Initialize counters for periodic status reporting
         self.pose_callback_count = 0
         self.publish_loop_count = 0
@@ -83,14 +83,14 @@ class PathVisualizer(Node):
         # Subscribe to MAVROS local position data (already in ENU map frame)
         self.create_subscription(
             PoseStamped,
-            "/mavros/local_position/pose",
+            "/uas4/local_position/pose",
             self.mavros_pose_callback,
             BEST_EFFORT_QOS,
         )
 
         # Timer for periodic pose and path publication
         self.timer = self.create_timer(1.0 / REFRESH_RATE_HZ, self.publish_loop)
-        
+
         self.logger.info(f"Path visualizer initialized (debug={'enabled' if debug else 'disabled'})")
         if debug:
             self.logger.info(f"Publishing at {REFRESH_RATE_HZ} Hz")
@@ -109,7 +109,7 @@ class PathVisualizer(Node):
 
         """
         self.pose_callback_count += 1
-        
+
         # Extract position from pose message
         self.drone_pos = [
             msg.pose.position.x,
@@ -127,15 +127,15 @@ class PathVisualizer(Node):
 
         # Store header for consistent timestamping
         self.latest_header = msg.header
-        
+
         # Report data received for status dashboard
         if hasattr(self, 'shutdown_handler'):
             self.shutdown_handler.report_data_received()
-        
+
         # Debug-only status reporting (control center doesn't need position details)
         if self.debug:
             log_periodic_status(
-                self, 
+                self,
                 f"Received pose at position [{self.drone_pos[0]:.2f}, {self.drone_pos[1]:.2f}, {self.drone_pos[2]:.2f}]",
                 self.pose_callback_count,
                 50  # Log every 50 messages
@@ -151,7 +151,7 @@ class PathVisualizer(Node):
         across all published messages.
         """
         self.publish_loop_count += 1
-        
+
         # Use timestamp from latest MAVROS message, or current time as fallback
         if hasattr(self, "latest_header"):
             stamp = self.latest_header.stamp
@@ -185,7 +185,7 @@ class PathVisualizer(Node):
 
         # Publish updated path for trail visualization in tools like Foxglove
         self.path_pub.publish(self.path)
-        
+
         # Debug-only status reporting (control center doesn't need path length details)
         if self.debug:
             log_periodic_status(
@@ -208,10 +208,10 @@ def main(args=None):
 
     """
     rclpy.init(args=args)
-    
+
     # Check for debug flag in arguments
     debug = '--debug' in (args or [])
-    
+
     try:
         node = PathVisualizer(debug=debug)
         node.get_logger().info("UROC Foxglove 3D Path Visualization Node started")

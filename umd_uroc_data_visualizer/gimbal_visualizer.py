@@ -76,48 +76,26 @@ class GimbalVisualizer(Node):
         # Setup logging
         self.logger = setup_node_logging(self, debug)
         self.debug = debug
-        
+
         # Setup graceful shutdown handling
         self.shutdown_handler = NodeShutdownHandler(self)
-        
+
         # Initialize counters for periodic status reporting
         self.publish_loop_count = 0
-
-        # Initialize transform broadcaster (currently unused but available for future features)
-        self.tf_broadcaster = TransformBroadcaster(self)
 
         # Storage for gimbal device flags (reserved for future use with status messages)
         self.flags = None
 
-        # Parameter to select which gimbal topic/mode to visualize
-        # Default set to trigger error if not properly configured
-        self.declare_parameter("visualizer_topic", "PARAMETER WASN'T SET")
-        self.visualizer_topic = self.get_parameter("visualizer_topic").value
-
         # Create appropriate marker publisher based on visualizer topic configuration
-        if self.visualizer_topic == "/mavros/gimbal_control/device/set_attitude":
-            # Publisher for commanded gimbal attitude visualization (red arrows)
-            self.marker_pub = self.create_publisher(
-                Marker, "/drone/set_attitude/gimbal/marker", 1
-            )
-            self.marker_color = "red"
-        elif self.visualizer_topic == "/mavros/gimbal_control/device/attitude_status":
-            # Publisher for actual gimbal attitude visualization (blue arrows)
-            self.marker_pub = self.create_publisher(
-                Marker, "/drone/attitude_status/gimbal/marker", 1
-            )
-            self.marker_color = "blue"
-        else:
-            # Invalid configuration - log error and exit
-            self.logger.error(f"Unsupported Parameter: {self.visualizer_topic}")
-            raise ValueError(f"Unsupported visualizer_topic: {self.visualizer_topic}")
+        self.marker_pub = self.create_publisher(
+            Marker, "/drone/set_attitude/gimbal/marker", 1
+        )
+        self.marker_color = "red"
 
         # Timer for periodic marker publishing at configured refresh rate
         self.timer = self.create_timer(1.0 / REFRESH_RATE_HZ, self.publish_loop)
-        
+
         self.logger.info(f"Gimbal visualizer initialized (debug={'enabled' if debug else 'disabled'})")
-        if debug:
-            self.logger.info(f"Visualizing {self.visualizer_topic} as {self.marker_color} arrows at {REFRESH_RATE_HZ} Hz")
 
     def publish_loop(self):
         """
@@ -140,7 +118,7 @@ class GimbalVisualizer(Node):
         Called periodically at REFRESH_RATE_HZ to maintain real-time visualization.
         """
         self.publish_loop_count += 1
-        
+
         # Get current timestamp for the marker message
         stamp = self.get_clock().now().to_msg()
 
@@ -168,28 +146,14 @@ class GimbalVisualizer(Node):
         marker.color.a = 1.0
 
         # Configure marker appearance based on visualizer topic mode
-        if self.visualizer_topic == "/mavros/gimbal_control/device/set_attitude":
-            # Red arrows for commanded gimbal attitudes
-            marker.ns = "gimbal_set_attitude"
-            marker.color.r = 1.0    # Full red
-            marker.color.g = 0.0    # No green
-            marker.color.b = 0.0    # No blue
-
-        elif self.visualizer_topic == "/mavros/gimbal_control/device/attitude_status":
-            # Blue arrows for actual gimbal status
-            marker.ns = "gimbal_attitude_status"
-            marker.color.r = 0.0    # No red
-            marker.color.g = 0.0    # No green
-            marker.color.b = 1.0    # Full blue
-
-        else:
-            # Should never reach here due to constructor validation
-            self.logger.error("Unsupported Parameter!")
-            return
+        marker.ns = "gimbal_set_attitude"
+        marker.color.r = 1.0    # Full red
+        marker.color.g = 0.0    # No green
+        marker.color.b = 0.0    # No blue
 
         # Publish the marker for visualization
         self.marker_pub.publish(marker)
-        
+
         # Debug-only status reporting (control center doesn't need marker publication details)
         if self.debug:
             log_periodic_status(
@@ -217,7 +181,7 @@ def main(args=None):
     This function serves as the console script entry point defined in setup.py.
     """
     rclpy.init(args=args)
-    
+
     # Check for debug flag in arguments
     debug = '--debug' in (args or [])
 
@@ -238,4 +202,3 @@ def main(args=None):
 
 if __name__ == "__main__":
     main()
-
